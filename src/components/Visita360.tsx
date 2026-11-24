@@ -71,7 +71,14 @@ export default function Visita360({ src, onClose }: { src: string; onClose: () =
   const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     closeRef.current?.focus();
-    const esc = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    const esc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+      // finestra modale: il Tab resta sul pulsante Chiudi (unico elemento interattivo)
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        closeRef.current?.focus();
+      }
+    };
     window.addEventListener('keydown', esc);
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';

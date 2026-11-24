@@ -1,6 +1,6 @@
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { useProgress } from '@react-three/drei';
+import { PerformanceMonitor, useProgress } from '@react-three/drei';
 import { EffectComposer, Bloom, ToneMapping, Vignette, SMAA, BrightnessContrast, HueSaturation } from '@react-three/postprocessing';
 import { ToneMappingMode } from 'postprocessing';
 import { NoToneMapping, SRGBColorSpace } from 'three';
@@ -45,6 +45,9 @@ export default function Experience() {
   const seeking = useMemo(() => new URLSearchParams(window.location.search).has('t'), []);
   const { progress } = useProgress();
   const mobile = MOBILE;
+  // risoluzione adattiva: se il dispositivo non regge 50 fps si scende di definizione (e si risale se può)
+  const maxDpr = Math.min(window.devicePixelRatio || 1, mobile ? 1.5 : 2);
+  const [dpr, setDpr] = useState(maxDpr);
   // la sequenza parte da sola appena la prima scena è pronta; si ferma quando la home esce dallo schermo
   useEffect(() => {
     if (!ready) return;
@@ -68,7 +71,7 @@ export default function Experience() {
       <Canvas
         className="home__canvas"
         shadows="percentage"
-        dpr={mobile ? [1, 1.5] : [1, 2]}
+        dpr={dpr}
         camera={{ fov: HERO.fov_v, near: 0.1, far: 40000, position: [HERO.pos[0], HERO.pos[1], HERO.pos[2] + 16] }}
         onCreated={(state) => {
           state.gl.localClippingEnabled = true;
@@ -77,6 +80,12 @@ export default function Experience() {
         }}
         gl={{ antialias: false, toneMapping: NoToneMapping, outputColorSpace: SRGBColorSpace, powerPreference: 'high-performance', stencil: false }}
       >
+        <PerformanceMonitor
+          flipflops={4}
+          onDecline={() => setDpr((d) => Math.max(1, +(d - 0.25).toFixed(2)))}
+          onIncline={() => setDpr((d) => Math.min(maxDpr, +(d + 0.25).toFixed(2)))}
+          onFallback={() => setDpr(1)}
+        />
         <fogExp2 attach="fog" args={[HAZE, 0.0003]} />
         <Suspense fallback={null}>
           <Cielo />

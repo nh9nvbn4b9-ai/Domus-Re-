@@ -1,7 +1,16 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html, useGLTF, useTexture } from '@react-three/drei';
-import { Mesh, MeshPhysicalMaterial, MeshStandardMaterial, SRGBColorSpace, type Material, type Object3D, type Texture } from 'three';
+import {
+  EquirectangularReflectionMapping,
+  Mesh,
+  MeshPhysicalMaterial,
+  MeshStandardMaterial,
+  SRGBColorSpace,
+  type Material,
+  type Object3D,
+  type Texture,
+} from 'three';
 import { bakedMaterial } from './baked';
 import { cinematic } from './cinematic';
 import { PALAZZO, fromBlender } from './coords';
@@ -14,6 +23,8 @@ const MAPS = {
   alto: '/models/lm_appartamento_alto.webp',
   muri: '/models/lm_pianta_muri.webp',
 };
+/** Riflessi degli interni: panorama Cycles del salone (stessa stanza), al posto del cielo esterno. */
+const ENV_INTERNO = '/models/env_interno.webp';
 const PIANTA = PALAZZO.appartamento_pianta;
 
 const GROUPS = ['LM_Appartamento', 'LM_AppartamentoAlto', 'LM_PiantaMuri'];
@@ -34,6 +45,12 @@ function groupOf(o: Object3D) {
 export function Appartamento() {
   const { scene } = useGLTF(URL, false, true);
   const maps = useTexture(MAPS) as Record<keyof typeof MAPS, Texture>;
+  const envInterno = useTexture(ENV_INTERNO, (t) => {
+    for (const x of Array.isArray(t) ? t : [t]) {
+      x.mapping = EquirectangularReflectionMapping;
+      x.colorSpace = SRGBColorSpace;
+    }
+  });
   const lowMats = useRef<Material[]>([]);
   const groups = useRef<{ alto: Object3D[]; muri: Object3D[] }>({ alto: [], muri: [] });
   const shown = useRef<boolean | null>(null);
@@ -62,8 +79,15 @@ export function Appartamento() {
         if (!(src instanceof MeshStandardMaterial)) return src;
         if (/Vetro/.test(src.name)) return glass;
         if (!o.geometry.attributes.uv1) return src;
-        // metalli (acciaio, ottone): nessuna luce diffusa da cuocere, restano riflettenti col cielo
-        if (src.metalness > 0.5) return src;
+        // metalli (acciaio, ottone): niente luce diffusa da cuocere; riflettono la stanza, non il cielo
+        if (src.metalness > 0.5) {
+          const m = src.clone();
+          m.envMap = envInterno;
+          m.envMapIntensity = 1;
+          // il centro del panorama guarda verso l'interno del palazzo (asse +Y di Blender = −Z qui)
+          m.envMapRotation.set(0, Math.PI / 2, 0);
+          return m;
+        }
         if (src.emissiveIntensity > 0 && src.emissive.getHex() !== 0) {
           // paralumi, braci: restano luminosi (bloom)
           const m = src.clone();
@@ -79,7 +103,7 @@ export function Appartamento() {
       o.material = Array.isArray(o.material) ? o.material.map(tune) : tune(o.material);
     });
     shown.current = null; // riapplica lo stato (planimetria o no) ai gruppi appena registrati
-  }, [scene, maps, glass]);
+  }, [scene, maps, glass, envInterno]);
 
   // planimetria: soffitti e muri alti nascosti, muri spessi in sezione, luce "pianta"
   useFrame(() => {
