@@ -74,6 +74,28 @@ node scripts/optimize-glb.mjs pipeline/cache/roma_raw.glb public/models/roma.glb
 .venv-blender/bin/python pipeline/blender/build_aereo.py
 ```
 
+## Pubblicazione
+
+Il sito è statico: si pubblica la cartella `dist/` prodotta da `npm run build`.
+
+- **Netlify** (il più semplice): trascinare `dist/` su app.netlify.com/drop, oppure collegare il repository
+  con comando di build `npm run build` e cartella `dist`. Le intestazioni di cache sono in `public/_headers`.
+- **Cloudflare Pages**: stesse impostazioni (build `npm run build`, output `dist`); legge anche `public/_headers`.
+- **Vercel**: framework "Vite", output `dist`.
+
+Dopo aver collegato il dominio, sostituire in `index.html` il percorso di `og:image` con l'indirizzo
+completo (`https://<dominio>/images/og-domus-re.jpg`), così l'anteprima appare quando il link viene
+condiviso su WhatsApp e Facebook.
+
+I modelli 3D non hanno l'hash nel nome: dopo averli rigenerati, la cache dei visitatori si aggiorna
+entro una settimana (vedi `public/_headers`); per un aggiornamento immediato rinominare il file.
+
+### Versioni per telefono
+
+`node scripts/mobile-variants.mjs` crea in `public/models/m/` le varianti con texture ridotte
+(e `public/hdri/cielo-2k.jpg`). Va rieseguito ogni volta che si rigenerano i modelli in `public/models/`.
+Il sito sceglie la variante in `src/three/assets.ts`.
+
 ## Note
 
 - L'appartamento mostrato nella home è una **ricostruzione dimostrativa immaginaria**, non un immobile in vendita.
