@@ -34,6 +34,7 @@ ap.add_argument('--render', default=None)
 ap.add_argument('--samples', type=int, default=64)
 ap.add_argument('--res', type=float, default=0.5)
 ap.add_argument('--no-export', action='store_true')
+ap.add_argument('--export', action='store_true', help='esporta anche quando si fa un render')
 ap.add_argument('--no-bake', action='store_true')
 ap.add_argument('--lm-size', type=int, default=2048)
 ap.add_argument('--lm-samples', type=int, default=96)
@@ -41,6 +42,28 @@ args = ap.parse_args(sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv els
 
 bpy.ops.wm.open_mainfile(filepath=os.path.join(CACHE, 'palazzo.blend'))
 scene = bpy.context.scene
+
+def glass_lets_light_through(mat):
+    """Vetro architettonico: i raggi d'ombra e diffusi lo attraversano (sole e cielo entrano nelle stanze)."""
+    nt = mat.node_tree
+    out = next(n for n in nt.nodes if n.type == 'OUTPUT_MATERIAL')
+    src = out.inputs['Surface'].links[0].from_socket
+    lp = nt.nodes.new('ShaderNodeLightPath')
+    tr = nt.nodes.new('ShaderNodeBsdfTransparent')
+    mix = nt.nodes.new('ShaderNodeMixShader')
+    add = nt.nodes.new('ShaderNodeMath')
+    add.operation = 'MAXIMUM'
+    nt.links.new(lp.outputs['Is Shadow Ray'], add.inputs[0])
+    nt.links.new(lp.outputs['Is Diffuse Ray'], add.inputs[1])
+    nt.links.new(add.outputs[0], mix.inputs['Fac'])
+    nt.links.new(src, mix.inputs[1])
+    nt.links.new(tr.outputs[0], mix.inputs[2])
+    nt.links.new(mix.outputs[0], out.inputs['Surface'])
+
+
+for _m in ('Vetro',):
+    if _m in bpy.data.materials:
+        glass_lets_light_through(bpy.data.materials[_m])
 
 FZ = P.APT_FLOOR          # pavimento finito
 CZ = P.APT_CEIL           # intradosso del solaio
@@ -65,6 +88,8 @@ M = {
     'camino': pbr('MarmoCamino', diff=DER('marmo_camino_diff.jpg'), nor=TEX('marble_01', 'marble_01_nor_gl_2k.jpg'), rough=0.2, nor_strength=0.2),
     'velluto': pbr('Velluto', diff=DER('velluto_tortora_diff.jpg'), nor=TEX('velour_velvet', 'velour_velvet_nor_gl_1k.jpg'), rough=0.85),
     'lino': pbr('Lino', diff=DER('lino_diff.jpg'), nor=TEX('rough_linen', 'rough_linen_nor_gl_1k.jpg'), rough=0.95, nor_strength=0.6),
+    'tessuto': pbr('TessutoDivano', diff=DER('tessuto_divano_diff.jpg'), nor=TEX('rough_linen', 'rough_linen_nor_gl_1k.jpg'), rough=0.95,
+                   nor_strength=0.8),
     'tappeto': pbr('Tappeto', diff=DER('tappeto_diff.jpg'), nor=TEX('rough_linen', 'rough_linen_nor_gl_1k.jpg'), rough=1.0, nor_strength=1.2),
     'ottone': pbr('OttoneInterni', color=(0.82, 0.62, 0.3), rough=0.25, metal=1.0),
     'acciaio': pbr('AcciaioSatinato', color=(0.75, 0.75, 0.76), rough=0.25, metal=1.0),
@@ -72,7 +97,7 @@ M = {
     'ceramica': pbr('Ceramica', color=(0.93, 0.93, 0.92), rough=0.08),
     'vetro': pbr('VetroDoccia', color=(1, 1, 1), rough=0.02, transmission=1.0, ior=1.5),
     'specchio': pbr('Specchio', color=(0.95, 0.95, 0.95), rough=0.02, metal=1.0),
-    'tenda': pbr('TendaLino', diff=DER('lino_diff.jpg'), rough=0.95, alpha=0.82),
+    'tenda': pbr('TendaLino', diff=DER('lino_diff.jpg'), rough=0.95, alpha=0.6),
     'paralume': pbr('Paralume', color=(0.95, 0.9, 0.8), rough=0.9, emission=(1.0, 0.78, 0.5), emission_strength=3.0),
     'braci': pbr('Braci', color=(0.1, 0.05, 0.02), rough=0.9, emission=(1.0, 0.42, 0.12), emission_strength=6.0),
     'scala': pbr('PietraScala', diff=DER('marmo_chiaro_diff.jpg'), rough=0.5),
@@ -282,11 +307,14 @@ def import_model(asset, name, loc, rot_deg, scale=1.0, coll=LOW, max_faces=9000)
             mdec.ratio = max(0.05, max_faces / len(o.data.polygons))
             lib.apply_modifiers(o)
     roots = [o for o in new if o.parent is None]
+    # un genitore unico: posizione/rotazione/scala dell'insieme, pezzi con le loro posizioni relative
+    holder = bpy.data.objects.new(name, None)
+    coll.objects.link(holder)
+    holder.location = loc
+    holder.rotation_euler = (0, 0, math.radians(rot_deg))
+    holder.scale = (scale, scale, scale)
     for r in roots:
-        r.name = name
-        r.location = loc
-        r.scale = (r.scale[0] * scale, r.scale[1] * scale, r.scale[2] * scale)
-        r.rotation_euler.z += math.radians(rot_deg)
+        r.parent = holder
     return roots
 
 
@@ -302,12 +330,34 @@ def fireplace(cx, cy, rot):
         box('CaminoBase', -1.0, 1.0, -0.3, 0.26, 0.0, 0.06, M['camino'], LOW, bev=0.01),
         box('CaminoSx', -0.9, -0.62, -0.22, 0.24, 0.06, 1.12, M['camino'], LOW, bev=0.01),
         box('CaminoDx', 0.62, 0.9, -0.22, 0.24, 0.06, 1.12, M['camino'], LOW, bev=0.01),
-        box('CaminoArchitrave', -0.9, 0.9, -0.22, 0.24, 0.9, 1.14, M['camino'], LOW, bev=0.01),
+        box('CaminoArchitrave', -0.92, 0.92, -0.235, 0.24, 0.9, 1.14, M['camino'], LOW, bev=0.01),
         box('CaminoMensola', -1.02, 1.02, -0.3, 0.24, 1.14, 1.2, M['camino'], LOW, bev=0.012),
         box('CaminoFocolare', -0.62, 0.62, 0.0, 0.24, 0.06, 0.9, M['nero'], LOW),
         box('CaminoBraci', -0.4, 0.4, 0.02, 0.18, 0.06, 0.12, M['braci'], LOW, bev=0.02),
     ]
     o = lib.join(parts, 'Camino')
+    o.location = (cx, cy, FZ)
+    o.rotation_euler = (0, 0, math.radians(rot))
+
+
+def sofa(cx, cy, w, d, rot):
+    """Divano contemporaneo: basso e profondo, cuscini sfoderabili in tessuto naturale, zoccolo arretrato."""
+    hw, hd = w / 2, d / 2
+    T = M['tessuto']
+    arm = 0.2
+    parts = [box('DivanoZoccolo', -hw + 0.08, hw - 0.08, -hd + 0.1, hd - 0.08, 0.0, 0.1, M['nero'], LOW),
+             box('DivanoBase', -hw, hw, -hd, hd, 0.1, 0.32, T, LOW, bev=0.03, bev_seg=3),
+             box('DivanoSchienale', -hw, hw, hd - 0.2, hd, 0.32, 0.72, T, LOW, bev=0.04, bev_seg=3)]
+    for s in (-1, 1):
+        parts.append(box('DivanoBracciolo', s * hw - (arm if s > 0 else 0), s * hw + (arm if s < 0 else 0), -hd - 0.012, hd + 0.005, 0.3, 0.6, T, LOW,
+                         bev=0.05, bev_seg=4))
+    n = 3
+    sw = (w - 2 * arm) / n
+    for k in range(n):
+        x0 = -hw + arm + k * sw
+        parts.append(box('DivanoSeduta', x0 + 0.01, x0 + sw - 0.01, -hd + 0.02, hd - 0.2, 0.32, 0.46, T, LOW, bev=0.05, bev_seg=4))
+        parts.append(box('DivanoCuscinoSchiena', x0 + 0.02, x0 + sw - 0.02, hd - 0.42, hd - 0.18, 0.46, 0.86, T, LOW, bev=0.07, bev_seg=4))
+    o = lib.join(parts, 'Divano')
     o.location = (cx, cy, FZ)
     o.rotation_euler = (0, 0, math.radians(rot))
 
@@ -363,7 +413,7 @@ def floor_lamp(name, x, y):
 def curtains(name, x0, x1, y):
     """Tende in lino a tutta altezza, raccolte ai lati della finestra."""
     w = x1 - x0
-    for s, (a, b) in (('sx', (x0 - 0.35, x0 + w * 0.12)), ('dx', (x1 - w * 0.12, x1 + 0.35))):
+    for s, (a, b) in (('sx', (x0 - 0.42, x0 + 0.06)), ('dx', (x1 - 0.06, x1 + 0.42))):
         nx, nz = 22, 2
         verts, faces = [], []
         for j in range(nz + 1):
@@ -386,8 +436,8 @@ for t, x, y, w, d, rot in P.APT_FURNITURE:
     if t == 'camino':
         fireplace(x, y, rot)
     elif t == 'divano':
-        import_model('sofa_03', 'Divano', (x, y, FZ), rot)
-        import_model('throw_pillows_01', 'CuscinidDivano', (x, y, FZ + 0.42), rot, 0.95)
+        sofa(x, y, w, d, rot)
+        import_model('throw_pillows_01', 'CuscinidDivano', (x, y + 0.0, FZ + 0.44), rot, 0.95)
     elif t == 'poltrona':
         import_model('modern_arm_chair_01', 'Poltrona', (x, y, FZ), rot)
     elif t == 'poltrona_lettura':
@@ -399,7 +449,11 @@ for t, x, y, w, d, rot in P.APT_FURNITURE:
     elif t == 'tappeto':
         o = local_box('Tappeto', x, y, rot, -w / 2, w / 2, -d / 2, d / 2, 0.0, 0.012, M['tappeto'], bev=0.005)
     elif t == 'tavolo':
-        import_model('dining_table', 'TavoloPranzo', (x, y, FZ), rot)
+        local_box('TavoloPiano', x, y, rot, -w / 2, w / 2, -d / 2, d / 2, 0.71, 0.75, M['marmo_top'], bev=0.006)
+        for s_ in (-1, 1):
+            local_box('TavoloGamba', x, y, rot, s_ * (w / 2 - 0.25) - 0.05, s_ * (w / 2 - 0.25) + 0.05, -d / 2 + 0.12, d / 2 - 0.12,
+                      0.0, 0.71, M['rovere'], bev=0.01)
+        import_model('ceramic_vase_02', 'VasoTavolo', (x, y, FZ + 0.75), 0)
         for k, dx in enumerate((-0.7, 0.0, 0.7)):
             for s in (-1, 1):
                 a = math.radians(rot)
@@ -557,7 +611,7 @@ add_light('LuceCamino', 'AREA', (X0 + 0.3, 2.9, FZ + 0.2), 40, 1900, size=0.7, d
 # riempimento morbido (luce diffusa delle stanze al crepuscolo)
 for name, x0, x1, y0, y1, _ in P.APT_ROOMS:
     area = (x1 - x0) * (y1 - y0)
-    add_light(f'Ambiente_{name}', 'AREA', ((x0 + x1) / 2, (y0 + y1) / 2, CZ - 0.05), 9 * area, 3000, size=(x1 - x0) * 0.8,
+    add_light(f'Ambiente_{name}', 'AREA', ((x0 + x1) / 2, (y0 + y1) / 2, CZ - 0.05), 4 * area, 3000, size=(x1 - x0) * 0.8,
               size_y=(y1 - y0) * 0.8, direction=(0, 0, -1))
 
 bpy.ops.wm.save_as_mainfile(filepath=os.path.join(CACHE, 'appartamento.blend'))
@@ -581,6 +635,7 @@ def camera(name, loc, look, lens=24):
 if args.render:
     views = {
         'salone': ((0.9, 7.2, FZ + 1.55), (-4.6, 1.6, FZ + 1.0), 20),
+        'salone_est': ((-4.9, 6.9, FZ + 1.6), (1.8, 1.8, FZ + 0.9), 20),
         'ingresso': ((0.1, 10.9, FZ + 1.6), (0.0, -2.0, FZ + 1.2), 22),
         'cucina': ((-1.95, 10.4, FZ + 1.6), (-4.6, 14.6, FZ + 0.9), 20),
         'camera': ((2.2, 10.0, FZ + 1.6), (5.2, 13.6, FZ + 0.8), 20),
@@ -609,7 +664,93 @@ if args.render:
     scene.render.resolution_x, scene.render.resolution_y = 1920, 1080
     scene.render.resolution_percentage = int(args.res * 100)
     scene.view_settings.view_transform = 'AgX'
-    scene.view_settings.exposure = 0.6
+    scene.view_settings.exposure = 0.25
     scene.render.filepath = os.path.join(CACHE, 'renders', f'appartamento-{args.render}.png')
     bpy.ops.render.render(write_still=True)
     print('render', scene.render.filepath)
+
+# ============================================================================ bake ed esportazione
+if (not args.render or args.export) and not args.no_export:
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('bakeutil', os.path.join(os.path.dirname(__file__), 'bakeutil.py'))
+    bu = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(bu)
+    import numpy as np
+    out_dir = os.path.join(ROOT, 'public', 'models')
+
+    def merged(coll, name):
+        objs = [o for o in coll.all_objects if o.type == 'MESH']
+        o = lib.join(objs, name)
+        for e in [e for e in coll.all_objects if e.type == 'EMPTY']:
+            bpy.data.objects.remove(e, do_unlink=True)
+        return o
+
+    low = merged(LOW, 'LM_Appartamento')
+    high = merged(HIGH, 'LM_AppartamentoAlto')
+    pianta = merged(PIANTA, 'LM_PiantaMuri')
+
+    def bake_again(obj, size, samples):
+        """Secondo bake sulle stesse UV 'Lightmap' (configurazione planimetria)."""
+        me = obj.data
+        me.uv_layers.active = me.uv_layers['Lightmap']
+        me.uv_layers['UVMap'].active_render = True
+        bpy.ops.object.select_all(action='DESELECT')
+        obj.select_set(True)
+        bpy.context.view_layer.objects.active = obj
+        img = bpy.data.images.new(f'LM2_{obj.name}', size, size, float_buffer=True)
+        added = []
+        for mat in me.materials:
+            nt = mat.node_tree
+            n = nt.nodes.new('ShaderNodeTexImage')
+            n.image = img
+            uvn = nt.nodes.new('ShaderNodeUVMap')
+            uvn.uv_map = 'Lightmap'
+            nt.links.new(uvn.outputs['UV'], n.inputs['Vector'])
+            for x in nt.nodes:
+                x.select = False
+            n.select = True
+            nt.nodes.active = n
+            added.append((nt, n, uvn))
+        scene.cycles.samples = samples
+        bpy.ops.object.bake(type='DIFFUSE', pass_filter={'DIRECT', 'INDIRECT'}, margin=8, use_clear=True)
+        for nt, n, uvn in added:
+            nt.nodes.remove(n)
+            nt.nodes.remove(uvn)
+        px = bu.denoise_pixels(img, CACHE)
+        return px.reshape(size, size, 4)[::-1, :, :3]
+
+    if not args.no_bake:
+        # 1) luce normale: soffitto chiuso, muri spessi della planimetria esclusi
+        pianta.hide_render = True
+        rgb = bu.bake_lightmap(scene, low, args.lm_size, args.lm_samples, CACHE)
+        bu.save_lightmap(rgb, os.path.join(out_dir, 'lm_appartamento.webp'), 6.0)
+        rgb = bu.bake_lightmap(scene, high, args.lm_size // 2, args.lm_samples // 2, CACHE)
+        bu.save_lightmap(rgb, os.path.join(out_dir, 'lm_appartamento_alto.webp'), 6.0)
+        # 2) planimetria: sezione a 2,40 m (soffitti e palazzo sopra il taglio nascosti)
+        pianta.hide_render = False
+        high.hide_render = True
+        keep = {low.name, pianta.name}
+        hidden = []
+        for o in bpy.data.objects:
+            if o.type == 'MESH' and o.name not in keep and not o.hide_render:
+                o.hide_render = True
+                hidden.append(o)
+        rgb = bake_again(low, args.lm_size, max(32, args.lm_samples * 2 // 3))
+        bu.save_lightmap(rgb, os.path.join(out_dir, 'lm_appartamento_pianta.webp'), 6.0)
+        rgb = bu.bake_lightmap(scene, pianta, args.lm_size // 2, args.lm_samples // 3, CACHE)
+        bu.save_lightmap(rgb, os.path.join(out_dir, 'lm_pianta_muri.webp'), 6.0)
+        for o in hidden:
+            o.hide_render = False
+        high.hide_render = False
+
+    for o in list(bpy.data.objects):
+        if o.type in ('LIGHT', 'CAMERA'):
+            bpy.data.objects.remove(o, do_unlink=True)
+    bpy.ops.object.select_all(action='DESELECT')
+    for o in (low, high, pianta):
+        o.hide_render = False
+        o.select_set(True)
+    out = os.path.join(CACHE, 'appartamento_raw.glb')
+    bpy.ops.export_scene.gltf(filepath=out, export_format='GLB', export_apply=True, export_yup=True, export_lights=False,
+                              export_cameras=False, export_image_format='AUTO', use_selection=True)
+    print('GLB', out, f'{os.path.getsize(out) / 1e6:.1f} MB', 'facce', sum(len(o.data.polygons) for o in (low, high, pianta)))
