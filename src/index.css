@@ -1184,6 +1184,23 @@ select {
   font-size: 0.66rem;
   color: var(--gold-light);
 }
+@media (max-width: 600px) {
+  /* telefono: etichette più compatte, i nomi lunghi vanno a capo */
+  .pianta-etichetta {
+    padding: 4px 7px;
+    white-space: normal;
+    max-width: 92px;
+    text-align: center;
+  }
+  .pianta-etichetta__nome {
+    font-size: 0.54rem;
+    letter-spacing: 0.1em;
+    line-height: 1.25;
+  }
+  .pianta-etichetta__mq {
+    font-size: 0.6rem;
+  }
+}
 
 /* --- Immagini dei servizi e visita a 360° --- */
 .servizio__media img {

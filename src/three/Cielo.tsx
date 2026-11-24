@@ -3,6 +3,7 @@ import { useThree } from '@react-three/fiber';
 import { Environment, useTexture } from '@react-three/drei';
 import { EquirectangularReflectionMapping, SRGBColorSpace } from 'three';
 import { ENV_ROTATION_Y } from './coords';
+import { asset } from './assets';
 
 /** Scala con cui il cielo HDR è stato codificato nel JPEG di sfondo (pipeline: sky 4k). */
 const SKY_SCALE = 2;
@@ -13,7 +14,7 @@ const SKY_SCALE = 2;
  */
 export function Cielo({ intensity = 0.48 }: { intensity?: number }) {
   const scene = useThree((s) => s.scene);
-  const sky = useTexture('/hdri/cielo-4k.jpg');
+  const sky = useTexture(asset('/hdri/cielo-4k.jpg'));
 
   useEffect(() => {
     sky.mapping = EquirectangularReflectionMapping;

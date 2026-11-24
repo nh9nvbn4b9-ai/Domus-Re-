@@ -11,6 +11,7 @@ import { Roma, HAZE } from './Roma';
 import { Scrittura } from './Scrittura';
 import { Appartamento } from './Appartamento';
 import { Facoltativo } from './Facoltativo';
+import { MOBILE } from './assets';
 import { PALAZZO } from './coords';
 import { seekFilm, setVisible, startSequence } from './cinematic';
 import { prefersReducedMotion } from '../lib/motion';
@@ -43,7 +44,7 @@ export default function Experience() {
   }, [ready]);
   const seeking = useMemo(() => new URLSearchParams(window.location.search).has('t'), []);
   const { progress } = useProgress();
-  const mobile = useMemo(() => window.matchMedia('(max-width: 820px), (pointer: coarse)').matches, []);
+  const mobile = MOBILE;
   // la sequenza parte da sola appena la prima scena è pronta; si ferma quando la home esce dallo schermo
   useEffect(() => {
     if (!ready) return;

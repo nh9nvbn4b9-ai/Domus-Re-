@@ -16,9 +16,10 @@ import {
 import pini from '../data/pini.json';
 import { bakedMaterial } from './baked';
 import { SUN_DIR } from './coords';
+import { asset } from './assets';
 
-const CITY_URL = '/models/roma.glb';
-const COLOSSEO_URL = '/models/colosseo.glb';
+const CITY_URL = asset('/models/roma.glb');
+const COLOSSEO_URL = asset('/models/colosseo.glb');
 /** colore della foschia: orizzonte caldo dell'ora d'oro */
 export const HAZE = new Color('#c8b8a4');
 
@@ -64,7 +65,7 @@ function Sole({ shadowSize }: { shadowSize: number }) {
 export function Roma({ mobile }: { mobile: boolean }) {
   const city = useGLTF(CITY_URL, false, true).scene;
   const colosseo = useGLTF(COLOSSEO_URL, false, true).scene;
-  const lm = useTexture('/models/lm_colosseo.webp');
+  const lm = useTexture(asset('/models/lm_colosseo.webp'));
   const gl = useThree((s) => s.gl);
   const frames = useRef(0);
 

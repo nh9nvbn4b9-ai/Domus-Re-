@@ -5,8 +5,9 @@ import { Mesh, MeshPhysicalMaterial, MeshStandardMaterial, SRGBColorSpace, type 
 import { bakedMaterial } from './baked';
 import { cinematic } from './cinematic';
 import { PALAZZO, fromBlender } from './coords';
+import { asset } from './assets';
 
-const URL = '/models/appartamento.glb';
+const URL = asset('/models/appartamento.glb');
 const MAPS = {
   normale: '/models/lm_appartamento.webp',
   pianta: '/models/lm_appartamento_pianta.webp',

@@ -15,12 +15,13 @@ import {
   type Object3D,
   type Texture,
 } from 'three';
+import { asset } from './assets';
 
-const URL = '/models/palazzo.glb';
+const URL = asset('/models/palazzo.glb');
 /** Materiali con emissione propria: restano PBR (la luce emessa non è nella lightmap). */
 const EMISSIVI = new Set(['TendaSottile', 'SoffittiInterni', 'LuceCalda']);
 const LIGHTMAPS = {
-  LM_Palazzo: '/models/lm_palazzo.webp',
+  LM_Palazzo: asset('/models/lm_palazzo.webp'),
   LM_Contesto: '/models/lm_contesto.webp',
   LM_Strada: '/models/lm_strada.webp',
   LM_Interni: '/models/lm_interni.webp',
