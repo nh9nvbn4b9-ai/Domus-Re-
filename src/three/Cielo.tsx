@@ -28,5 +28,5 @@ export function Cielo({ intensity = 0.48 }: { intensity?: number }) {
     };
   }, [scene, sky, intensity]);
 
-  return <Environment files="/hdri/cielo-1k.hdr" environmentIntensity={0.12} environmentRotation={[0, ENV_ROTATION_Y, 0]} />;
+  return <Environment files="/hdri/cielo-1k.hdr" environmentIntensity={0.45} environmentRotation={[0, ENV_ROTATION_Y, 0]} />;
 }

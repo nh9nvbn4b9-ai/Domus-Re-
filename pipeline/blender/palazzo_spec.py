@@ -130,7 +130,7 @@ def write_json(path):
         'camere': {
             # inquadratura iniziale: più lontana della foto, palazzo ~80% dell'altezza
             # coordinate web (Y in alto, Z verso la strada); centro_y = quota del centro quadro sulla facciata
-            'hero': {'pos': [0.0, 1.7, 36.0], 'fov_v': 47.0, 'centro_y': 15.0},
+            'hero': {'pos': [0.0, 1.7, 48.0], 'fov_v': 47.0, 'centro_y': 17.0},
             'foto': {'pos': [0.0, 1.6, 40.0], 'fov_v': 37.7, 'centro_y': 13.4},
         },
     }

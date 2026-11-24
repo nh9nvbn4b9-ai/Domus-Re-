@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useGLTF, useTexture } from '@react-three/drei';
+import { bakedMaterial, LM_SCALE } from './baked';
 import {
   Color,
   DoubleSide,
@@ -15,8 +16,8 @@ import {
 } from 'three';
 
 const URL = '/models/palazzo.glb';
-/** Scala di codifica delle lightmap (pipeline/blender/build_palazzo.py: LM_SCALE). */
-const LM_SCALE = 6;
+/** Materiali con emissione propria: restano PBR (la luce emessa non è nella lightmap). */
+const EMISSIVI = new Set(['TendaSottile', 'SoffittiInterni', 'LuceCalda']);
 const LIGHTMAPS = {
   LM_Palazzo: '/models/lm_palazzo.webp',
   LM_Contesto: '/models/lm_contesto.webp',
@@ -34,9 +35,9 @@ function lightmapGroup(o: Object3D): LMKey | null {
 
 /**
  * Palazzo ricostruito dalla foto (Blender → glTF + meshopt).
- * L'illuminazione è calcolata con Cycles e applicata come lightMap (seconda UV):
- * luce del tramonto, uplight sulle colonne, rimbalzi e ombre morbide identici al render,
- * senza luci in tempo reale (leggero anche su telefono). L'HDRI resta per i riflessi.
+ * L'illuminazione è calcolata con Cycles e applicata come lightMap (seconda UV) su materiali
+ * che ignorano le luci in tempo reale: luce del tramonto, uplight sulle colonne, rimbalzi e ombre
+ * morbide come nel render, identici su desktop e telefono. L'HDRI resta per i riflessi dei vetri.
  */
 export function Palazzo({ exposure = 1 }: { exposure?: number }) {
   const { scene } = useGLTF(URL, false, true);
@@ -92,8 +93,10 @@ export function Palazzo({ exposure = 1 }: { exposure?: number }) {
           // la luce è già nell'immagine renderizzata con Cycles
           return new MeshBasicMaterial({ map: src.map, alphaTest: 0.45, side: DoubleSide, color: new Color(0.78, 0.78, 0.78) });
         }
+        const baked = group && o.geometry.attributes.uv1;
+        if (baked && !EMISSIVI.has(src.name)) return bakedMaterial(src, maps[group], exposure);
         const m = src.clone();
-        if (group && o.geometry.attributes.uv1) {
+        if (baked) {
           m.lightMap = maps[group];
           m.lightMapIntensity = Math.PI * LM_SCALE * exposure;
         }
@@ -110,11 +113,6 @@ export function Palazzo({ exposure = 1 }: { exposure?: number }) {
             m.emissive.set('#ffc07a');
             m.emissiveIntensity = 14;
             m.toneMapped = false;
-            break;
-          case 'FerroVerniciato':
-          case 'Ottone':
-          case 'Bronzo':
-            reflective.current.push({ m, i: 1.1 });
             break;
         }
         return m;

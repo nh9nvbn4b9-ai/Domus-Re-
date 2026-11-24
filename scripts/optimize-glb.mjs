@@ -34,7 +34,7 @@ await doc.transform(
   textureCompress({ encoder: sharp, targetFormat: 'webp', quality: 80, resize: [1024, 1024], pattern: /^(?!.*(stone_cream|slab_cream)).*$/ }),
   reorder({ encoder: MeshoptEncoder }),
   quantize(),
-  meshopt({ encoder: MeshoptEncoder, level: 'medium' }),
+  meshopt({ encoder: MeshoptEncoder, level: 'high' }),
 );
 
 await io.write(output, doc);
