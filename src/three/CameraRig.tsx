@@ -21,7 +21,7 @@ const HERO_SHIFT = (HERO.centro_y - HERO.pos[1]) / HERO.pos[2] / Math.tan(MathUt
 const KEYS = [
   { t: 0.0, pos: [0, HERO.pos[1], HERO.pos[2]], look: [0, HERO.pos[1], 0], shift: HERO_SHIFT, fov: HERO.fov_v },
   { t: 0.16, pos: [0, 30, 72], look: [0, 30, -40], shift: 0.28, fov: 47 },
-  { t: 0.34, pos: [10, 125, 34], look: [0, 0, -4], shift: 0, fov: 50 },
+  { t: 0.34, pos: [8, 72, 40], look: [0, 8, -6], shift: 0, fov: 50 },
   { t: 0.56, pos: [125, 235, -175], look: [-200, 0, 420], shift: 0, fov: 45 },
   { t: 0.8, pos: [-55, 175, 140], look: [-260, 5, 470], shift: 0, fov: 42 },
   { t: 1.0, pos: [-145, 115, 300], look: [-262, 12, 470], shift: 0, fov: 40 },

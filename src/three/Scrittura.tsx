@@ -33,6 +33,7 @@ interface PathData {
   cum: number[];
   length: number;
   emit: { p: Vector3; s: number }[];
+  em: number;
 }
 
 /** Impagina DOMUS RE nella fascia di cielo sopra il palazzo, vista dall'inquadratura iniziale. */
@@ -44,10 +45,10 @@ function layout(aspect: number) {
   const tanV = Math.tan(((fov / 2) * Math.PI) / 180);
   const c0 = (HERO.centro_y - camY) / camZ;
   const t0 = (BUILDING_TOP - camY) / camZ + 0.045;
-  const t1 = c0 + tanV - 0.035;
+  const t1 = c0 + tanV - 0.11; // margine per la barra del menu
   const d = camZ - TEXT_Z;
   const bandH = (t1 - t0) * d;
-  const widthAvail = 0.84 * 2 * tanV * aspect * d;
+  const widthAvail = (aspect < 0.8 ? 0.72 : 0.8) * 2 * tanV * aspect * d;
   const single = Math.min(bandH * 0.86, widthAvail / lineWidth('DOMUS RE'));
   const two = Math.min((bandH * 0.92) / 2.35, widthAvail / lineWidth('DOMUS'));
   const lines = two > single * 1.25 ? ['DOMUS', 'RE'] : ['DOMUS RE'];
@@ -119,7 +120,7 @@ function buildPath(aspect: number): PathData {
       next += 2.0;
     }
   }
-  return { pts, smoke, cum, length: cum[cum.length - 1], emit };
+  return { pts, smoke, cum, length: cum[cum.length - 1], emit, em };
 }
 
 /** Sbuffo di fumo procedurale: alfa = densità, rosso = illuminazione (sole da sinistra). */
@@ -165,15 +166,16 @@ attribute vec3 aCenter;
 attribute float aBirth;
 attribute float aSeed;
 uniform float uClock;
+uniform float uScale;
 varying vec2 vUv;
 varying float vAlpha;
 void main() {
   float age = uClock - aBirth;
   if (age < 0.0) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); return; }
   float grow = 1.0 - exp(-age / 3.2);
-  float size = mix(2.2, 12.0, grow) + age * 0.05;
-  vec3 drift = vec3(0.8, 0.22, 0.0) * age * 0.3
-    + vec3(sin(aSeed * 12.0 + age * 0.21), cos(aSeed * 7.0 + age * 0.17), sin(aSeed * 3.0)) * grow * 2.2;
+  float size = (mix(2.2, 12.0, grow) + age * 0.05) * uScale;
+  vec3 drift = vec3(0.6, 0.18, 0.0) * age * 0.25 * uScale
+    + vec3(sin(aSeed * 12.0 + age * 0.21), cos(aSeed * 7.0 + age * 0.17), sin(aSeed * 3.0)) * grow * 2.2 * uScale;
   vec4 mv = modelViewMatrix * vec4(aCenter + drift, 1.0);
   float r = aSeed * 6.2831 + age * 0.03;
   vec2 c = position.xy;
@@ -260,6 +262,7 @@ export function Scrittura() {
       fragmentShader: FRAG,
       uniforms: {
         uClock: { value: 0 },
+        uScale: { value: Math.min(1, Math.max(0.42, path.em / 55)) },
         uPuff: { value: puffTexture() },
         uLit: { value: new Color(1.0, 0.9, 0.78).multiplyScalar(1.25) },
         uShadow: { value: new Color(0.52, 0.56, 0.68) },

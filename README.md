@@ -59,10 +59,19 @@ La scena della home è generata da script, non a mano: rieseguendoli si ottiene 
 5. **Ottimizzazione web** — `node scripts/optimize-glb.mjs pipeline/cache/palazzo_raw.glb public/models/palazzo.glb`
    (meshopt, WebP, deduplica).
 
+6. **Roma e Colosseo** — `pipeline/blender/build_roma.py` (Colosseo da misure reali in `colosseo.py`,
+   isolati, parchi, pini, colli) → `colosseo_raw.glb` con lightmap e `roma_raw.glb`; `--skip-colosseo`
+   rigenera solo la città. Texture: `python3 pipeline/prepare_city_textures.py`.
+7. **Aereo** — `pipeline/blender/build_aereo.py` → `public/models/aereo.glb`.
+
 ```bash
 python3 -m venv .venv-blender && .venv-blender/bin/pip install bpy==5.3.0 pillow numpy
 .venv-blender/bin/python pipeline/blender/build_palazzo.py --no-trees --lm-size 2048 --lm-samples 64
 node scripts/optimize-glb.mjs pipeline/cache/palazzo_raw.glb public/models/palazzo.glb
+.venv-blender/bin/python pipeline/blender/build_roma.py --lm-size 2048 --lm-samples 48
+node scripts/optimize-glb.mjs pipeline/cache/colosseo_raw.glb public/models/colosseo.glb
+node scripts/optimize-glb.mjs pipeline/cache/roma_raw.glb public/models/roma.glb
+.venv-blender/bin/python pipeline/blender/build_aereo.py
 ```
 
 ## Note

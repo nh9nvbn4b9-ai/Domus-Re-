@@ -137,7 +137,7 @@ PALATINO_C = Vector((-610.0, -780.0, 0.0))
 PALATINO = ellipse_poly(PALATINO_C.x, PALATINO_C.y, 270, 210, 0.5, 48)
 CIRCO_C = Vector((-930.0, -1060.0, 0.0))
 CIRCO = ellipse_poly(CIRCO_C.x, CIRCO_C.y, 310, 70, math.radians(-38), 40)
-PALAZZO_ZONE = [(-62, -42), (62, -42), (62, 18), (-62, 18)]   # palazzo, vicini e strada (già in palazzo.glb)
+PALAZZO_ZONE = [(-61, -26), (61, -26), (61, 16), (-61, 16)]   # palazzo, vicini e strada (già in palazzo.glb)
 
 flat_poly('ColleOppio', COLLE_OPPIO, -0.15, 0.05, M['prato'], VERDE, uv=8.0)
 flat_poly('Celio', CELIO, -0.15, 0.05, M['prato'], VERDE, uv=8.0)
@@ -295,7 +295,7 @@ batch = Batch()
 churches = []
 pines = []
 CELL = 96.0
-STREET = 8.0
+STREET = 5.0
 for gi in range(-34, 35):
     for gj in range(-36, 28):
         cx, cy = gi * CELL, gj * CELL
@@ -318,8 +318,8 @@ for gi in range(-34, 35):
                 pines.append((ox + rnd.uniform(-30, 30), oy + rnd.uniform(-30, 30), 0.0, rnd.uniform(0, 6.3), rnd.uniform(0.7, 1.0)))
             continue
         drot = drot + math.radians(rnd.uniform(-4, 4))
-        bw = CELL - 2 * STREET - rnd.uniform(0, 14)
-        bh = CELL - 2 * STREET - rnd.uniform(0, 14)
+        bw = CELL - 2 * STREET - rnd.uniform(0, 8)
+        bh = CELL - 2 * STREET - rnd.uniform(0, 8)
         x0, x1, y0, y1 = ox - bw / 2, ox + bw / 2, oy - bh / 2, oy + bh / 2
         far = dist > 1500
         if rnd.random() < 0.012 and not far:
@@ -349,6 +349,37 @@ for gi in range(-34, 35):
                 pos += seg
         # cortile pavimentato
         batch.box(M['piazza'], x0 + depth, x1 - depth, y0 + depth, y1 - depth, -0.2, 0.05, rot=drot, origin=(ox, oy), top_only=True)
+
+# isolati che chiudono l'intorno del palazzo (dietro e lungo la stessa via) + marciapiedi della via
+
+
+def perimeter_block(x0, x1, y0, y1, seed):
+    r = random.Random(seed)
+    depth = 13.0
+    for sd, a0, a1, b0, b1 in (('S', x0, x1, y0, y0 + depth), ('N', x0, x1, y1 - depth, y1),
+                               ('W', x0, x0 + depth, y0 + depth, y1 - depth), ('E', x1 - depth, x1, y0 + depth, y1 - depth)):
+        along_x = sd in 'SN'
+        L = (a1 - a0) if along_x else (b1 - b0)
+        pos = 0.0
+        while pos < L - 1:
+            seg = min(L - pos, r.uniform(14, 26))
+            h = r.choice((18.8, 22.2, 22.2, 25.6))
+            fac = FACCIATE[r.randrange(len(FACCIATE))]
+            sx0, sx1, sy0, sy1 = (a0 + pos, a0 + pos + seg, b0, b1) if along_x else (a0, a1, b0 + pos, b0 + pos + seg)
+            batch.box(fac, sx0, sx1, sy0, sy1, -0.2, h)
+            batch.box(M['cornicione'], sx0 - 0.35, sx1 + 0.35, sy0 - 0.35, sy1 + 0.35, h - 0.4, h)
+            v, f = gable_roof(sx0 - 0.3, sx1 + 0.3, sy0 - 0.3, sy1 + 0.3, h, along_x, M['coppi'], CITY, h=2.6)
+            batch.add(M['coppi'] if r.random() < 0.6 else M['coppi_vecchi'], v, f)
+            pos += seg
+    batch.box(M['piazza'], x0 + depth, x1 - depth, y0 + depth, y1 - depth, -0.2, 0.05, top_only=True)
+
+
+perimeter_block(-58, 58, 22, 70, 1)
+perimeter_block(-150, -66, 4, 62, 2)
+perimeter_block(66, 150, 4, 62, 3)
+for xa, xb in ((-260, -61), (61, 260)):
+    batch.box(M['piazza'], xa, xb, -6.0, 3.5, -0.2, 0.0)       # marciapiede lato palazzo
+    batch.box(M['piazza'], xa, xb, -25.3, -20.3, -0.2, 0.0)    # marciapiede lato parco
 
 city_objs = batch.build(CITY, 'Isolati', uv={f.name: FACADE_TILE for f in FACCIATE} | {
     'Coppi': (4.0, 4.0), 'CoppiVecchi': (4.0, 4.0), 'Piazza': (8.0, 8.0), 'CornicioneCitta': (4.0, 4.0)})
@@ -434,6 +465,8 @@ def scatter(poly, count, min_d=14.0, base_h=None):
         x, y = rnd.uniform(min(xs), max(xs)), rnd.uniform(min(ys), max(ys))
         if not point_in_poly(x, y, poly):
             continue
+        if -110 < y < 0 and abs(x) < 85:
+            continue  # libera la visuale tra la camera iniziale (nel parco) e il palazzo
         if any((x - px) ** 2 + (y - py) ** 2 < min_d ** 2 for px, py, *_ in pines[-400:]):
             continue
         z = base_h(x, y) if base_h else 0.0

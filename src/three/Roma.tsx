@@ -113,11 +113,14 @@ export function Roma({ mobile }: { mobile: boolean }) {
     const m4 = new Matrix4();
     const q = new Quaternion();
     const up = new Vector3(0, 1, 0);
+    proto.updateWorldMatrix(true, true);
     return parts.map((p) => {
       const inst = new InstancedMesh(p.geometry, p.material, pini.length);
+      // la geometria è quantizzata: la scala reale è nella trasformazione del nodo
+      const local = p.matrixWorld.clone();
       pini.forEach((t, i) => {
         q.setFromAxisAngle(up, t.r);
-        m4.compose(new Vector3(t.p[0], t.p[1], t.p[2]), q, new Vector3(t.s, t.s, t.s));
+        m4.compose(new Vector3(t.p[0], t.p[1], t.p[2]), q, new Vector3(t.s, t.s, t.s)).multiply(local);
         inst.setMatrixAt(i, m4);
       });
       inst.instanceMatrix.needsUpdate = true;
