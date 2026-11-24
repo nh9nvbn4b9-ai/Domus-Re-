@@ -1,4 +1,5 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
 import { useGLTF, useTexture } from '@react-three/drei';
 import {
   Color,
@@ -58,7 +59,23 @@ export function Palazzo({ exposure = 1 }: { exposure?: number }) {
     [],
   );
 
+  // Materiali riflettenti: ricevono l'HDRI come envMap esplicita (intensità per materiale),
+  // mentre l'ambiente globale resta minimo perché la luce diffusa è già nelle lightmap.
+  const reflective = useRef<{ m: MeshStandardMaterial; i: number }[]>([]);
+  const envAssigned = useRef(false);
+  useFrame(({ scene: s }) => {
+    if (envAssigned.current || !s.environment) return;
+    for (const { m, i } of reflective.current) {
+      m.envMap = s.environment;
+      m.envMapIntensity = i;
+      m.needsUpdate = true;
+    }
+    envAssigned.current = true;
+  });
+
   useEffect(() => {
+    reflective.current = [{ m: glass, i: 1.6 }];
+    envAssigned.current = false;
     for (const t of Object.values(maps)) {
       t.flipY = false;
       t.colorSpace = SRGBColorSpace;
@@ -79,7 +96,6 @@ export function Palazzo({ exposure = 1 }: { exposure?: number }) {
         if (group && o.geometry.attributes.uv1) {
           m.lightMap = maps[group];
           m.lightMapIntensity = Math.PI * LM_SCALE * exposure;
-          m.envMapIntensity = 0.22;
         }
         switch (m.name) {
           case 'TendaSottile':
@@ -98,7 +114,7 @@ export function Palazzo({ exposure = 1 }: { exposure?: number }) {
           case 'FerroVerniciato':
           case 'Ottone':
           case 'Bronzo':
-            m.envMapIntensity = 1.2;
+            reflective.current.push({ m, i: 1.1 });
             break;
         }
         return m;

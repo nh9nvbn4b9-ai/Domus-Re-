@@ -1058,6 +1058,11 @@ select {
   .home__overlay {
     flex-direction: column;
     align-items: flex-start;
+    gap: 10px;
+  }
+  .home__overlay .eyebrow {
+    font-size: 0.62rem;
+    letter-spacing: 0.22em;
   }
 }
 

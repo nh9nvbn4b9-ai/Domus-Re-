@@ -55,7 +55,7 @@ export function CameraRig() {
     const st = state.current;
     const portrait = size.width / size.height < 0.8;
     // su schermi verticali allarga il campo perché la facciata (12 m) entri in larghezza
-    const fov = portrait ? Math.max(st.fov, 2 * MathUtils.radToDeg(Math.atan(7.6 / (st.z * (size.width / size.height))))) : st.fov;
+    const fov = portrait ? Math.max(st.fov, 2 * MathUtils.radToDeg(Math.atan(8.6 / (st.z * (size.width / size.height))))) : st.fov;
     const px = pointer.current.x * 0.7;
     const py = -pointer.current.y * 0.25;
     tmp.current.set(st.x + px, st.y + py, st.z);

@@ -1,7 +1,7 @@
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { useProgress } from '@react-three/drei';
-import { EffectComposer, Bloom, ToneMapping, Vignette, SMAA, BrightnessContrast } from '@react-three/postprocessing';
+import { EffectComposer, Bloom, ToneMapping, Vignette, SMAA, BrightnessContrast, HueSaturation } from '@react-three/postprocessing';
 import { ToneMappingMode } from 'postprocessing';
 import { NoToneMapping, SRGBColorSpace } from 'three';
 import { Palazzo } from './Palazzo';
@@ -10,6 +10,7 @@ import { Cielo } from './Cielo';
 import { PALAZZO } from './coords';
 
 const HERO = PALAZZO.camere.hero;
+const EXPOSURE = 0.95;
 
 function Loader({ onDone }: { onDone: () => void }) {
   const { progress, active } = useProgress();
@@ -27,6 +28,8 @@ export default function Experience() {
   const [ready, setReady] = useState(false);
   const { progress } = useProgress();
   const mobile = useMemo(() => window.matchMedia('(max-width: 820px), (pointer: coarse)').matches, []);
+  // ?exp=0.8 permette di tarare l'esposizione in sviluppo
+  const exposure = useMemo(() => Number(new URLSearchParams(window.location.search).get('exp')) || EXPOSURE, []);
 
   return (
     <>
@@ -38,13 +41,14 @@ export default function Experience() {
       >
         <Suspense fallback={null}>
           <Cielo />
-          <Palazzo exposure={1.1} />
+          <Palazzo exposure={exposure} />
         </Suspense>
         <CameraRig />
         <EffectComposer multisampling={0} enableNormalPass={false}>
           <Bloom mipmapBlur intensity={0.65} luminanceThreshold={0.92} luminanceSmoothing={0.25} />
           <ToneMapping mode={ToneMappingMode.AGX} />
-          <BrightnessContrast contrast={0.1} />
+          <BrightnessContrast contrast={0.14} />
+          <HueSaturation saturation={0.1} />
           <Vignette offset={0.3} darkness={0.5} />
           <SMAA />
         </EffectComposer>
