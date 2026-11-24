@@ -1069,3 +1069,41 @@ select {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* --- Caricamento scena 3D --- */
+.home__loader {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  background: radial-gradient(ellipse at 50% 35%, #231e15, var(--ink) 70%);
+  color: var(--text-light-muted);
+  transition: opacity 1.6s var(--ease), visibility 1.6s;
+  z-index: 2;
+}
+.home__loader.is-done {
+  opacity: 0;
+  visibility: hidden;
+}
+.home__loader-label {
+  font-family: var(--font-caps);
+  font-size: 0.7rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+.home__loader-bar {
+  width: min(240px, 60vw);
+  height: 1px;
+  background: var(--line-light);
+  overflow: hidden;
+}
+.home__loader-bar span {
+  display: block;
+  height: 100%;
+  background: var(--gold);
+  transform-origin: left;
+  transition: transform 0.4s var(--ease);
+}

@@ -43,6 +43,28 @@ public/images/         immagini ottimizzate per il web
 - `node scripts/trace-logo.mjs reference/logo-originale.jpg src/assets/logo-domus-re.svg` — ricalca il logo in vettoriale.
 - `node scripts/prepare-images.mjs` — genera WebP ottimizzati e favicon.
 
+## Pipeline 3D (palazzo)
+
+La scena della home è generata da script, non a mano: rieseguendoli si ottiene sempre lo stesso risultato.
+
+1. **Misure dalla foto** — `pipeline/blender/palazzo_spec.py`: ogni quota è presa in pixel da
+   `reference/palazzo-riferimento.jpg` e convertita in metri. Esporta anche `src/data/palazzo.json`
+   (piani, assi delle finestre, balcone dell'appartamento, luci, camere) usato dal sito.
+2. **Asset CC0** — `python3 pipeline/polyhaven.py texture|hdri|model <id>` scarica da Poly Haven in
+   `pipeline/cache/` (non versionata); `python3 pipeline/prepare_textures.py` crea le tinte calibrate sulla foto.
+3. **Modellazione + luce** — `pipeline/blender/build_palazzo.py` (Blender 5.3 come modulo Python `bpy`):
+   costruisce palazzo, strada e contesto, calcola la luce con Cycles nelle lightmap (denoise OIDN)
+   e esporta `pipeline/cache/palazzo_raw.glb`. Con `--render foto|hero` produce un render di controllo.
+4. **Alberi** — `pipeline/blender/render_billboards.py`: alberi scansionati renderizzati su sfondo trasparente.
+5. **Ottimizzazione web** — `node scripts/optimize-glb.mjs pipeline/cache/palazzo_raw.glb public/models/palazzo.glb`
+   (meshopt, WebP, deduplica).
+
+```bash
+python3 -m venv .venv-blender && .venv-blender/bin/pip install bpy==5.3.0 pillow numpy
+.venv-blender/bin/python pipeline/blender/build_palazzo.py --no-trees --lm-size 2048 --lm-samples 64
+node scripts/optimize-glb.mjs pipeline/cache/palazzo_raw.glb public/models/palazzo.glb
+```
+
 ## Note
 
 - L'appartamento mostrato nella home è una **ricostruzione dimostrativa immaginaria**, non un immobile in vendita.

@@ -26,3 +26,4 @@ dist-ssr
 # Asset scaricati/intermedi della pipeline 3D (rigenerabili dagli script)
 /pipeline/cache/
 *.blend1
+/.venv-blender/
