@@ -27,3 +27,4 @@ dist-ssr
 /pipeline/cache/
 *.blend1
 /.venv-blender/
+__pycache__/
