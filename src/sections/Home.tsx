@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { onPauseChange, toggleUserPause } from '../three/cinematic';
+import { Didascalie } from '../components/Didascalie';
 import { AGENZIA } from '../data/site';
 
 const Experience = lazy(() => import('../three/Experience'));
@@ -39,7 +40,7 @@ export function Home() {
       </div>
 
       <div className="home__overlay">
-        <p className="eyebrow">Agenzia immobiliare · {AGENZIA.citta}</p>
+        {webgl ? <Didascalie /> : <p className="eyebrow">Agenzia immobiliare · {AGENZIA.citta}</p>}
         <h1 className="visually-hidden">Domus Re Immobiliare</h1>
         <div className="home__controls">
           {webgl && (

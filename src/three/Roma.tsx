@@ -151,5 +151,3 @@ export function Roma({ mobile }: { mobile: boolean }) {
   );
 }
 
-useGLTF.preload(CITY_URL, false, true);
-useGLTF.preload(COLOSSEO_URL, false, true);

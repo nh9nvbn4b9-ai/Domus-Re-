@@ -1,3 +1,4 @@
+import { lazy, Suspense, useState } from 'react';
 import { CONTATTI, INDIRIZZO_COMPLETO, MAPS_DIREZIONI_URL, MAPS_URL, SERVIZI, AGENZIA } from '../data/site';
 
 function SectionHead({ numero, titolo, id }: { numero: string; titolo: string; id: string }) {
@@ -24,7 +25,19 @@ export function ChiSiamo() {
   );
 }
 
+/** Immagini dei servizi: render Cycles dello stesso mondo 3D della home (appartamento dimostrativo). */
+const IMMAGINI_SERVIZI: Record<string, string> = {
+  compravendita: 'Il portone del palazzo al tramonto (render 3D)',
+  'tecnologia-360': 'Il salone dell’appartamento dimostrativo, visitabile a 360 gradi (render 3D)',
+  'affitto-protetto': 'Ingresso con porta blindata (render 3D)',
+  valutazioni: 'Planimetria 3D in sezione dell’appartamento dimostrativo (render 3D)',
+  'affitto-concordato': 'Cucina con isola (render 3D)',
+};
+
+const Visita360 = lazy(() => import('../components/Visita360'));
+
 export function Servizi() {
+  const [visita, setVisita] = useState(false);
   return (
     <section id="servizi" className="section section--ink" aria-labelledby="servizi-titolo">
       <div className="container">
@@ -32,8 +45,20 @@ export function Servizi() {
         <ul className="servizi">
           {SERVIZI.map((s) => (
             <li key={s.id} className="servizio" data-reveal>
-              {/* Immagine del servizio: render dalla scena 3D (fase 6). */}
-              <div className="servizio__media" data-servizio={s.id} aria-hidden="true" />
+              <div className="servizio__media">
+                <img
+                  src={`/images/servizi/${s.id}.webp`}
+                  alt={IMMAGINI_SERVIZI[s.id]}
+                  loading="lazy"
+                  width={1200}
+                  height={750}
+                />
+                {s.id === 'tecnologia-360' && (
+                  <button type="button" className="servizio__360" onClick={() => setVisita(true)}>
+                    <span aria-hidden="true">360°</span> Prova la visita virtuale
+                  </button>
+                )}
+              </div>
               <div className="servizio__body">
                 <h3 className="servizio__title">{s.titolo}</h3>
                 <p className="servizio__text">{s.testo}</p>
@@ -41,7 +66,13 @@ export function Servizi() {
             </li>
           ))}
         </ul>
+        <p className="servizi__nota">Le immagini sono render 3D dell’appartamento dimostrativo mostrato nella home.</p>
       </div>
+      {visita && (
+        <Suspense fallback={null}>
+          <Visita360 src="/images/servizi/salone-360.webp" onClose={() => setVisita(false)} />
+        </Suspense>
+      )}
     </section>
   );
 }

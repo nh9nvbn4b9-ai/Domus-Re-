@@ -30,6 +30,18 @@ function Ready({ onReady }: { onReady: () => void }) {
  */
 export default function Experience() {
   const [ready, setReady] = useState(false);
+  // caricamento progressivo: prima palazzo e cielo, poi la città, poi l'appartamento (serve a metà film)
+  const [stage, setStage] = useState(0);
+  useEffect(() => {
+    if (!ready) return;
+    const t1 = window.setTimeout(() => setStage(1), 1500);
+    const t2 = window.setTimeout(() => setStage(2), 9000);
+    return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+    };
+  }, [ready]);
+  const seeking = useMemo(() => new URLSearchParams(window.location.search).has('t'), []);
   const { progress } = useProgress();
   const mobile = useMemo(() => window.matchMedia('(max-width: 820px), (pointer: coarse)').matches, []);
   // la sequenza parte da sola appena la prima scena è pronta; si ferma quando la home esce dallo schermo
@@ -73,16 +85,20 @@ export default function Experience() {
         <Suspense fallback={null}>
           <Scrittura />
         </Suspense>
-        <Facoltativo nome="appartamento">
-          <Suspense fallback={null}>
-            <Appartamento />
-          </Suspense>
-        </Facoltativo>
-        <Facoltativo nome="città">
-          <Suspense fallback={null}>
-            <Roma mobile={mobile} />
-          </Suspense>
-        </Facoltativo>
+        {(stage >= 2 || seeking) && (
+          <Facoltativo nome="appartamento">
+            <Suspense fallback={null}>
+              <Appartamento />
+            </Suspense>
+          </Facoltativo>
+        )}
+        {(stage >= 1 || seeking) && (
+          <Facoltativo nome="città">
+            <Suspense fallback={null}>
+              <Roma mobile={mobile} />
+            </Suspense>
+          </Facoltativo>
+        )}
         <CameraRig />
         <EffectComposer multisampling={0} enableNormalPass={false}>
           <Bloom mipmapBlur intensity={0.65} luminanceThreshold={0.92} luminanceSmoothing={0.25} />

@@ -636,10 +636,14 @@ if args.render:
     views = {
         'salone': ((0.9, 7.2, FZ + 1.55), (-4.6, 1.6, FZ + 1.0), 20),
         'salone_est': ((-4.9, 6.9, FZ + 1.6), (1.8, 1.8, FZ + 0.9), 20),
+        # immagini dei servizi (sito): portone, ingresso con porta blindata, cucina, planimetria; 360 del salone
+        'portone': ((3.2, -10.5, 1.5), (-0.3, 0.0, 4.2), 30),
+        'porta': ((0.55, 7.9, FZ + 1.5), (-0.1, 11.4, FZ + 1.25), 22),
+        'panorama': ((-1.9, 3.7, FZ + 1.55), (-1.9, 0.0, FZ + 1.55), 24),
         'ingresso': ((0.1, 10.9, FZ + 1.6), (0.0, -2.0, FZ + 1.2), 22),
         'cucina': ((-1.95, 10.4, FZ + 1.6), (-4.6, 14.6, FZ + 0.9), 20),
         'camera': ((2.2, 10.0, FZ + 1.6), (5.2, 13.6, FZ + 0.8), 20),
-        'planimetria': ((6.0, -9.0, FZ + 22.0), (0.0, 7.5, FZ), 30),
+        'planimetria': ((7.5, -8.0, FZ + 20.0), (0.0, 7.6, FZ), 30),
         'balcone': ((0.6, -0.4, FZ + 1.5), (-260.0, -470.0, 10.0), 26),
     }
     loc, look, lens = views[args.render]
@@ -661,7 +665,11 @@ if args.render:
     scene.cycles.samples = args.samples
     scene.cycles.use_denoising = True
     scene.cycles.max_bounces = 6
-    scene.render.resolution_x, scene.render.resolution_y = 1920, 1080
+    scene.render.resolution_x, scene.render.resolution_y = (3072, 1536) if args.render == 'panorama' else (1920, 1200)
+    if args.render == 'panorama':
+        cam.data.type = 'PANO'
+        cam.data.panorama_type = 'EQUIRECTANGULAR'
+        cam.rotation_euler = (math.radians(90), 0, 0)
     scene.render.resolution_percentage = int(args.res * 100)
     scene.view_settings.view_transform = 'AgX'
     scene.view_settings.exposure = 0.25
