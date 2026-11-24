@@ -10,6 +10,8 @@ import { Cielo } from './Cielo';
 import { Roma, HAZE } from './Roma';
 import { Scrittura } from './Scrittura';
 import { PALAZZO } from './coords';
+import { setVisible, startSequence } from './cinematic';
+import { prefersReducedMotion } from '../lib/motion';
 
 const HERO = PALAZZO.camere.hero;
 const EXPOSURE = 0.95;
@@ -22,12 +24,24 @@ function Ready({ onReady }: { onReady: () => void }) {
 
 /**
  * Scena della home: palazzo e Colosseo con luce precalcolata (Cycles), città con il sole in tempo
- * reale e ombre statiche, aereo che scrive DOMUS RE, volo sopra Roma guidato dallo scroll.
+ * reale e ombre statiche, aereo che scrive DOMUS RE, volo automatico sopra Roma fino al Colosseo.
  */
 export default function Experience() {
   const [ready, setReady] = useState(false);
   const { progress } = useProgress();
   const mobile = useMemo(() => window.matchMedia('(max-width: 820px), (pointer: coarse)').matches, []);
+  // la sequenza parte da sola appena la prima scena è pronta; si ferma quando la home esce dallo schermo
+  useEffect(() => {
+    if (!ready) return;
+    const tl = startSequence({ reduce: prefersReducedMotion(), fade: '.home__fade' });
+    const home = document.getElementById('home');
+    const io = new IntersectionObserver(([e]) => setVisible(e.isIntersecting), { threshold: 0.05 });
+    if (home) io.observe(home);
+    return () => {
+      io.disconnect();
+      tl.kill();
+    };
+  }, [ready]);
   // ?exp=0.8 permette di tarare l'esposizione in sviluppo
   const exposure = useMemo(() => Number(new URLSearchParams(window.location.search).get('exp')) || EXPOSURE, []);
 

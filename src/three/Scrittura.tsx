@@ -19,7 +19,6 @@ import {
 import { GLYPHS, LETTER_GAP, SPACE, lineWidth } from './glyphs';
 import { cinematic } from './cinematic';
 import { PALAZZO } from './coords';
-import { prefersReducedMotion } from '../lib/motion';
 
 const HERO = PALAZZO.camere.hero;
 const BUILDING_TOP = PALAZZO.altezza_totale;
@@ -202,7 +201,7 @@ void main() {
 
 /**
  * Aereo che scrive DOMUS RE nel cielo sopra il palazzo, con scia di fumo che resta visibile.
- * La scrittura è guidata dal tempo (cinematic.writeClock), non dallo scroll.
+ * La scrittura è guidata dal tempo (cinematic.writeClock, avviata dalla sequenza in cinematic.ts).
  */
 export function Scrittura() {
   const size = useThree((s) => s.size);
@@ -218,17 +217,6 @@ export function Scrittura() {
   useEffect(() => {
     prop.current = plane.getObjectByName('Elica') ?? null;
   }, [plane]);
-
-  // la scrittura parte poco dopo la comparsa della scena (con movimento ridotto: scritta già completa)
-  useEffect(() => {
-    if (prefersReducedMotion()) {
-      cinematic.writeClock = cinematic.writeDuration + 30;
-      cinematic.writing = true;
-      return;
-    }
-    const t = window.setTimeout(() => (cinematic.writing = true), 1600);
-    return () => window.clearTimeout(t);
-  }, []);
 
   const { geometry, material } = useMemo(() => {
     const speed = path.length / cinematic.writeDuration;
@@ -277,7 +265,7 @@ export function Scrittura() {
   const tmp = useMemo(() => ({ m: new Matrix4(), q: new Quaternion(), f: new Vector3(), u: new Vector3(), r: new Vector3() }), []);
 
   useFrame((_, dt) => {
-    if (cinematic.writing) cinematic.writeClock += Math.min(dt, 0.1);
+    if (cinematic.writing && !cinematic.paused) cinematic.writeClock += Math.min(dt, 0.1);
     material.uniforms.uClock.value = cinematic.writeClock;
     const g = planeRef.current;
     if (!g) return;

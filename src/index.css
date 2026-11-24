@@ -1112,3 +1112,47 @@ select {
   transform-origin: left;
   transition: transform 0.4s var(--ease);
 }
+
+/* --- Controlli della sequenza --- */
+.home__fade {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.home__controls {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  pointer-events: auto;
+}
+.home__play {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(234, 208, 138, 0.4);
+  background: rgba(14, 13, 11, 0.4);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  color: var(--text-light);
+  font-family: var(--font-caps);
+  font-size: 0.66rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 0.3s, background-color 0.3s;
+}
+.home__play:hover {
+  border-color: var(--gold-light);
+  background: rgba(201, 162, 58, 0.16);
+}
+.home__play-icon {
+  font-size: 0.6rem;
+  letter-spacing: 0;
+  color: var(--gold-light);
+}

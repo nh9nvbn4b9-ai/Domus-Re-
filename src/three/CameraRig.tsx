@@ -1,39 +1,29 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { CatmullRomCurve3, MathUtils, Matrix4, PerspectiveCamera, Quaternion, Vector3 } from 'three';
 import { PALAZZO } from './coords';
 import { cinematic } from './cinematic';
-import { prefersReducedMotion } from '../lib/motion';
-
-gsap.registerPlugin(ScrollTrigger);
 
 const HERO = PALAZZO.camere.hero;
 /** decentramento ottico dell'inquadratura iniziale (verticali parallele, come la foto) */
 const HERO_SHIFT = (HERO.centro_y - HERO.pos[1]) / HERO.pos[2] / Math.tan(MathUtils.degToRad(HERO.fov_v / 2));
 
 /**
- * Sequenza della home (coordinate three, metri; -Z = nord, il Colosseo è a sud-ovest, +X = est).
- * t = avanzamento dello scroll; ogni tappa ha posizione, punto guardato, decentramento e campo visivo.
+ * Volo della home (coordinate three, metri; -Z = nord, il Colosseo è a sud-ovest, +X = est).
+ * Ogni tappa ha posizione, punto guardato, decentramento e campo visivo; t = istante nel volo (0..1).
  * Le rotazioni passano per una vista dall'alto sopra il tetto, così la camera si gira verso sud senza scatti.
  */
 const KEYS = [
   { t: 0.0, pos: [0, HERO.pos[1], HERO.pos[2]], look: [0, HERO.pos[1], 0], shift: HERO_SHIFT, fov: HERO.fov_v },
-  { t: 0.16, pos: [0, 30, 72], look: [0, 30, -40], shift: 0.28, fov: 47 },
-  { t: 0.34, pos: [8, 72, 40], look: [0, 8, -6], shift: 0, fov: 50 },
-  { t: 0.56, pos: [125, 235, -175], look: [-200, 0, 420], shift: 0, fov: 45 },
+  { t: 0.14, pos: [0, 30, 72], look: [0, 30, -40], shift: 0.28, fov: 47 },
+  { t: 0.3, pos: [8, 72, 40], look: [0, 8, -6], shift: 0, fov: 50 },
+  { t: 0.55, pos: [125, 235, -175], look: [-200, 0, 420], shift: 0, fov: 45 },
   { t: 0.8, pos: [-55, 175, 140], look: [-260, 5, 470], shift: 0, fov: 42 },
   { t: 1.0, pos: [-145, 115, 300], look: [-262, 12, 470], shift: 0, fov: 40 },
 ] as const;
 
-const smooth = (x: number) => x * x * (3 - 2 * x);
-
+/** Camera della home, guidata solo dal tempo (cinematic.flight / introDz), con una lieve oscillazione "a mano". */
 export function CameraRig() {
-  const pointer = useRef({ x: 0, y: 0 });
-  const intro = useRef({ dz: 16 });
-  const scroll = useRef({ p: 0 });
-
   const path = useMemo(() => {
     const curve = new CatmullRomCurve3(KEYS.map((k) => new Vector3(...k.pos)), false, 'centripetal');
     const m = new Matrix4();
@@ -45,54 +35,27 @@ export function CameraRig() {
   }, []);
   const tmp = useMemo(() => ({ p: new Vector3(), q: new Quaternion() }), []);
 
-  useEffect(() => {
-    const reduce = prefersReducedMotion();
-    const introTw = gsap.to(intro.current, { dz: 0, duration: reduce ? 0 : 4.5, ease: 'power3.out' });
-    // la home resta agganciata per tre schermate: lo scroll guida il volo sopra Roma
-    const tl = gsap.timeline({
-      scrollTrigger: {
-        trigger: '#home',
-        start: 'top top',
-        end: '+=300%',
-        pin: true,
-        scrub: reduce ? true : 1.4,
-        anticipatePin: 1,
-      },
-    });
-    tl.to(scroll.current, { p: 1, ease: 'none', onUpdate: () => (cinematic.scroll = scroll.current.p) });
-    tl.to('.home__overlay', { autoAlpha: 0, duration: 0.08, ease: 'none' }, 0.02);
-    const onMove = (e: PointerEvent) => {
-      pointer.current.x = (e.clientX / window.innerWidth) * 2 - 1;
-      pointer.current.y = (e.clientY / window.innerHeight) * 2 - 1;
-    };
-    if (!reduce) window.addEventListener('pointermove', onMove, { passive: true });
-    return () => {
-      introTw.kill();
-      tl.scrollTrigger?.kill();
-      tl.kill();
-      window.removeEventListener('pointermove', onMove);
-    };
-  }, []);
-
   useFrame((three, dt) => {
     const camera = three.camera as PerspectiveCamera;
     const aspect = three.size.width / three.size.height;
-    const p = MathUtils.clamp(scroll.current.p, 0, 1);
+    const p = MathUtils.clamp(cinematic.flight, 0, 1);
     let k = 0;
     while (k < KEYS.length - 2 && p > KEYS[k + 1].t) k++;
     const a = KEYS[k];
     const b = KEYS[k + 1];
-    const l = smooth(MathUtils.clamp((p - a.t) / (b.t - a.t), 0, 1));
+    const l = MathUtils.clamp((p - a.t) / (b.t - a.t), 0, 1);
     const u = (k + l) / (KEYS.length - 1);
 
     path.curve.getPoint(u, tmp.p);
-    const heroW = 1 - smooth(MathUtils.clamp(p / 0.12, 0, 1));
-    tmp.p.z += intro.current.dz * heroW;
-    tmp.p.x += pointer.current.x * 0.8 * heroW;
-    tmp.p.y += -pointer.current.y * 0.3 * heroW;
-    camera.position.lerp(tmp.p, 1 - Math.exp(-dt * 6));
-    tmp.q.slerpQuaternions(path.quats[k], path.quats[k + 1], l);
-    camera.quaternion.slerp(tmp.q, 1 - Math.exp(-dt * 6));
+    const heroW = 1 - MathUtils.smoothstep(p, 0, 0.12);
+    const time = three.clock.elapsedTime;
+    tmp.p.z += cinematic.introDz * heroW;
+    // respiro della camera, appena percettibile, indipendente dall'utente
+    tmp.p.x += Math.sin(time * 0.21) * 0.35 * heroW;
+    tmp.p.y += Math.sin(time * 0.17 + 1.3) * 0.12 * heroW;
+    camera.position.lerp(tmp.p, 1 - Math.exp(-dt * 5));
+    tmp.q.slerpQuaternions(path.quats[k], path.quats[k + 1], MathUtils.smootherstep(l, 0, 1) * 0.35 + l * 0.65);
+    camera.quaternion.slerp(tmp.q, 1 - Math.exp(-dt * 5));
 
     let fov = MathUtils.lerp(a.fov, b.fov, l);
     if (aspect < 0.8) {
@@ -106,8 +69,7 @@ export function CameraRig() {
     camera.near = MathUtils.clamp(camera.position.y * 0.015, 0.1, 4);
     camera.far = 40000;
     camera.updateProjectionMatrix();
-    const shift = MathUtils.lerp(a.shift, b.shift, l);
-    camera.projectionMatrix.elements[9] = shift;
+    camera.projectionMatrix.elements[9] = MathUtils.lerp(a.shift, b.shift, l);
     camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
   });
 
