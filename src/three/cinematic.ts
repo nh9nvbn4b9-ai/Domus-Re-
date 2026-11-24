@@ -5,7 +5,8 @@ import { gsap } from 'gsap';
  * La sequenza parte da sola, come un filmato: non dipende da scroll o mouse.
  *
  * - writeClock: secondi dall'inizio della scrittura nel cielo (continua a crescere: il fumo deriva)
- * - flight: avanzamento 0..1 del volo (facciata → tetto → Roma → Colosseo)
+ * - flight: avanzamento 0..1 del film (facciata → tetto → Roma → Colosseo → balcone → salone →
+ *   planimetria 3D → vista dal balcone)
  * - introDz: arretramento iniziale della camera (carrellata d'ingresso)
  */
 export const cinematic = {
@@ -14,6 +15,8 @@ export const cinematic = {
   flight: 0,
   introDz: 16,
   paused: false,
+  /** planimetria 3D: soffitti nascosti, palazzo sezionato al 3° piano */
+  planimetria: false,
   /** durata della scrittura in secondi */
   writeDuration: 13,
 };
@@ -78,12 +81,24 @@ export function startSequence({ reduce, fade }: { reduce: boolean; fade: string 
 }
 
 function buildLoop(tl: gsap.core.Timeline, fade: string) {
-  tl.to(cinematic, { flight: 1, duration: 30, ease: 'sine.inOut' })
-    .to({}, { duration: 3.5 })
+  tl.to(cinematic, { flight: 1, duration: 84, ease: 'none' })
+    .to({}, { duration: 4 })
     .to(fade, { autoAlpha: 1, duration: 1.4, ease: 'power2.in' })
     .set(cinematic, { flight: 0, introDz: 10 })
     .to({}, { duration: 0.9 }) // la camera raggiunge il palazzo mentre lo schermo è nero
     .to(fade, { autoAlpha: 0, duration: 1.6, ease: 'power2.out' })
     .to(cinematic, { introDz: 0, duration: 4, ease: 'power3.out' }, '<')
     .to({}, { duration: 5 });
+}
+
+/** Ferma il film in un istante (0..1) con la scritta già completa: usato per le verifiche. */
+export function seekFilm(t: number) {
+  master?.kill();
+  master = gsap.timeline({ paused: true });
+  cinematic.introDz = 0;
+  cinematic.writing = true;
+  cinematic.writeClock = cinematic.writeDuration + 30;
+  cinematic.flight = Math.min(1, Math.max(0, t));
+  pausedByUser = true;
+  setPausedState(true);
 }

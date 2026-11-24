@@ -9,8 +9,10 @@ import { CameraRig } from './CameraRig';
 import { Cielo } from './Cielo';
 import { Roma, HAZE } from './Roma';
 import { Scrittura } from './Scrittura';
+import { Appartamento } from './Appartamento';
+import { Facoltativo } from './Facoltativo';
 import { PALAZZO } from './coords';
-import { setVisible, startSequence } from './cinematic';
+import { seekFilm, setVisible, startSequence } from './cinematic';
 import { prefersReducedMotion } from '../lib/motion';
 
 const HERO = PALAZZO.camere.hero;
@@ -34,6 +36,9 @@ export default function Experience() {
   useEffect(() => {
     if (!ready) return;
     const tl = startSequence({ reduce: prefersReducedMotion(), fade: '.home__fade' });
+    // sviluppo: ?t=0.75 ferma il film in un istante (verifica delle inquadrature)
+    const seek = new URLSearchParams(window.location.search).get('t');
+    if (seek !== null) seekFilm(Number(seek));
     const home = document.getElementById('home');
     const io = new IntersectionObserver(([e]) => setVisible(e.isIntersecting), { threshold: 0.05 });
     if (home) io.observe(home);
@@ -52,6 +57,9 @@ export default function Experience() {
         shadows="percentage"
         dpr={mobile ? [1, 1.5] : [1, 2]}
         camera={{ fov: HERO.fov_v, near: 0.1, far: 40000, position: [HERO.pos[0], HERO.pos[1], HERO.pos[2] + 16] }}
+        onCreated={({ gl }) => {
+          gl.localClippingEnabled = true;
+        }}
         gl={{ antialias: false, toneMapping: NoToneMapping, outputColorSpace: SRGBColorSpace, powerPreference: 'high-performance', stencil: false }}
       >
         <fogExp2 attach="fog" args={[HAZE, 0.0003]} />
@@ -63,9 +71,16 @@ export default function Experience() {
         <Suspense fallback={null}>
           <Scrittura />
         </Suspense>
-        <Suspense fallback={null}>
-          <Roma mobile={mobile} />
-        </Suspense>
+        <Facoltativo nome="appartamento">
+          <Suspense fallback={null}>
+            <Appartamento />
+          </Suspense>
+        </Facoltativo>
+        <Facoltativo nome="città">
+          <Suspense fallback={null}>
+            <Roma mobile={mobile} />
+          </Suspense>
+        </Facoltativo>
         <CameraRig />
         <EffectComposer multisampling={0} enableNormalPass={false}>
           <Bloom mipmapBlur intensity={0.65} luminanceThreshold={0.92} luminanceSmoothing={0.25} />

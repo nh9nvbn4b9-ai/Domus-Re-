@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useGLTF, useTexture } from '@react-three/drei';
 import { bakedMaterial, LM_SCALE } from './baked';
+import { SECTION } from './clip';
 import {
   Color,
   DoubleSide,
@@ -118,6 +119,8 @@ export function Palazzo({ exposure = 1 }: { exposure?: number }) {
         return m;
       };
       o.material = Array.isArray(o.material) ? o.material.map(tune) : tune(o.material);
+      // sezione della planimetria: il palazzo si taglia sopra il pavimento del 3° piano
+      for (const m of Array.isArray(o.material) ? o.material : [o.material]) m.clippingPlanes = [SECTION];
       o.castShadow = false;
       o.receiveShadow = false;
     });

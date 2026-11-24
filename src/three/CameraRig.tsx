@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { CatmullRomCurve3, MathUtils, Matrix4, PerspectiveCamera, Quaternion, Vector3 } from 'three';
 import { PALAZZO } from './coords';
 import { cinematic } from './cinematic';
+import { setSection } from './clip';
 
 const HERO = PALAZZO.camere.hero;
 /** decentramento ottico dell'inquadratura iniziale (verticali parallele, come la foto) */
@@ -14,13 +15,31 @@ const HERO_SHIFT = (HERO.centro_y - HERO.pos[1]) / HERO.pos[2] / Math.tan(MathUt
  * Le rotazioni passano per una vista dall'alto sopra il tetto, così la camera si gira verso sud senza scatti.
  */
 const KEYS = [
+  // palazzo e volo su Roma
   { t: 0.0, pos: [0, HERO.pos[1], HERO.pos[2]], look: [0, HERO.pos[1], 0], shift: HERO_SHIFT, fov: HERO.fov_v },
-  { t: 0.14, pos: [0, 30, 72], look: [0, 30, -40], shift: 0.28, fov: 47 },
-  { t: 0.3, pos: [8, 72, 40], look: [0, 8, -6], shift: 0, fov: 50 },
-  { t: 0.55, pos: [125, 235, -175], look: [-200, 0, 420], shift: 0, fov: 45 },
-  { t: 0.8, pos: [-55, 175, 140], look: [-260, 5, 470], shift: 0, fov: 42 },
-  { t: 1.0, pos: [-145, 115, 300], look: [-262, 12, 470], shift: 0, fov: 40 },
+  { t: 0.07, pos: [0, 30, 72], look: [0, 30, -40], shift: 0.28, fov: 47 },
+  { t: 0.15, pos: [8, 72, 40], look: [0, 8, -6], shift: 0, fov: 50 },
+  { t: 0.27, pos: [125, 235, -175], look: [-200, 0, 420], shift: 0, fov: 45 },
+  { t: 0.37, pos: [-55, 175, 140], look: [-260, 5, 470], shift: 0, fov: 42 },
+  { t: 0.45, pos: [-145, 115, 300], look: [-262, 12, 470], shift: 0, fov: 40 },
+  // ritorno sopra il Colle Oppio e arrivo al balcone del 3° piano
+  { t: 0.56, pos: [-30, 60, 110], look: [0, 18, 0], shift: 0, fov: 42 },
+  { t: 0.64, pos: [0, 17.2, 16], look: [0, 15.4, 0], shift: 0, fov: 45 },
+  { t: 0.69, pos: [0, 15.7, 1.6], look: [0, 15.6, -6], shift: 0, fov: 52 },
+  // nel salone: dalla portafinestra verso il camino
+  { t: 0.74, pos: [0.2, 15.8, -2.4], look: [-4.0, 15.2, -3.4], shift: 0, fov: 58 },
+  { t: 0.8, pos: [0.7, 15.9, -6.2], look: [-4.2, 15.0, -2.2], shift: 0, fov: 58 },
+  // attraverso il soffitto: planimetria 3D in sezione, lenta orbita
+  { t: 0.85, pos: [0.4, 19.2, -6.0], look: [0, 14.3, -6.2], shift: 0, fov: 55 },
+  { t: 0.91, pos: [7, 33, 5], look: [0, 14.3, -7.8], shift: 0, fov: 45 },
+  { t: 0.96, pos: [-8, 33, 3], look: [0, 14.3, -7.8], shift: 0, fov: 45 },
+  // di nuovo sul balcone: vista su Colle Oppio e Colosseo
+  { t: 0.985, pos: [0.9, 15.6, 0.65], look: [-260, 10, 470], shift: 0, fov: 50 },
+  { t: 1.0, pos: [0.9, 15.65, 0.85], look: [-260, 10, 470], shift: 0, fov: 48 },
 ] as const;
+/** tratto del film in cui la camera, sopra il soffitto, mostra la planimetria */
+const PLAN_WINDOW = [0.82, 0.975];
+const CEILING = PALAZZO.appartamento_pianta.soffitto;
 
 /** Camera della home, guidata solo dal tempo (cinematic.flight / introDz), con una lieve oscillazione "a mano". */
 export function CameraRig() {
@@ -66,10 +85,16 @@ export function CameraRig() {
     }
     camera.fov = fov;
     // piano vicino adattivo: precisione della profondità sia a terra sia in volo sopra la città
-    camera.near = MathUtils.clamp(camera.position.y * 0.015, 0.1, 4);
+    camera.near = p > 0.6 && p < 0.99 ? 0.05 : MathUtils.clamp(camera.position.y * 0.015, 0.1, 4);
     camera.far = 40000;
     camera.updateProjectionMatrix();
     camera.projectionMatrix.elements[9] = MathUtils.lerp(a.shift, b.shift, l);
+    // planimetria: quando la camera ha attraversato il soffitto
+    const plan = p > PLAN_WINDOW[0] && p < PLAN_WINDOW[1] && camera.position.y > CEILING - 0.2;
+    if (plan !== cinematic.planimetria) {
+      cinematic.planimetria = plan;
+      setSection(plan);
+    }
     camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
   });
 
