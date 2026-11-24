@@ -74,6 +74,16 @@ node scripts/optimize-glb.mjs pipeline/cache/roma_raw.glb public/models/roma.glb
 .venv-blender/bin/python pipeline/blender/build_aereo.py
 ```
 
+## Metaverso (prova)
+
+`metaverso.html` (in sviluppo: http://localhost:5173/metaverso.html) è uno spazio 3D esplorabile, separato dalla home:
+un umanoide olografico cammina su un pavimento a esagoni con la scritta DOMUS RE e attraversa tre portali
+(Chi siamo, Immobili, Contatti) che portano a stanze per ora vuote. Il codice è in `src/metaverso/`.
+
+- Controller sullo schermo (`controller.ts`): analogico sinistro avanti/indietro, analogico destro visuale; anche la croce direzionale.
+- Funzionano anche tastiera (W/S, A/D, frecce), trascinamento con mouse o dito e un controller vero collegato al computer.
+- Le stanze si costruiscono in `world.ts` (`buildRoom`): lì andranno i contenuti delle sezioni.
+
 ## Pubblicazione
 
 Il sito è statico: si pubblica la cartella `dist/` prodotta da `npm run build`.
