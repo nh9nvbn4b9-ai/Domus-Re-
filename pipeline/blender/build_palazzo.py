@@ -217,9 +217,18 @@ for s in (-1, 1):
 lib.boolean_cut(wall, cutters)
 lib.cube_uv(wall.data, 2.5)
 
+# Finestre sul retro (cortile, non visibile in foto): stessi assi su tutti i piani; al piano 3 servono
+# cucina, camera padronale e scala dell'appartamento (vedi palazzo_spec.APT_WINDOWS)
+BACK_WINDOWS = [(w_['x'], w_['w']) for w_ in P.APT_WINDOWS if w_['wall'] == 'retro']
 # Pareti laterali/posteriore (non visibili in foto: lisce, senza aperture inventate)
 box('MuroLatoSx', -HW, -HW + 0.5, P.WALL_T, P.DEPTH, 0, EAVE, MAT['stone'], PAL, uv_scale=2.5)
-box('MuroRetro', -HW, HW, P.DEPTH - 0.5, P.DEPTH, 0, EAVE, MAT['stone'], PAL, uv_scale=2.5)
+retro_wall = box('MuroRetro', -HW, HW, P.DEPTH - 0.5, P.DEPTH, 0, EAVE, MAT['stone'], PAL, uv_scale=2.5)
+_rc = []
+for f in P.FLOORS[1:]:
+    for bx, bw in BACK_WINDOWS:
+        _rc.append(box('cut', bx - bw / 2, bx + bw / 2, P.DEPTH - 1.0, P.DEPTH + 1.0, f['level'] + 0.9, f['win_top'], None, PAL, uv_scale=None))
+lib.boolean_cut(retro_wall, _rc)
+lib.cube_uv(retro_wall.data, 2.5)
 box('MuroLatoDx', HW - 0.5, HW, P.WALL_T, P.DEPTH, 0, EAVE, MAT['stone'], PAL, uv_scale=2.5)
 
 # ===========================================================================
@@ -499,7 +508,8 @@ for s in (-1, 1):
         z0 = f['level'] if n > 1 else Z_CORN - 0.05
         frame_rect(f'Cornice{n}{s}', x0, x1, z0, f['win_top'], chambranle_profile(0.10, 0.07), MAT['stone'], PAL)
         window_frame(f'Finestra{n}{s}', x0, x1, z0, f['win_top'], transom=f['win_top'] - 0.42, mullions=1)
-        curtains(f'Tende{n}{s}', x0, x1, z0, f['win_top'] - 0.1)
+        if n != P.APARTMENT_FLOOR:  # il piano 3 è l'appartamento (build_appartamento.py)
+            curtains(f'Tende{n}{s}', x0, x1, z0, f['win_top'] - 0.1)
         if n == 1:
             continue
         iron_railing(f'Ringhiera{n}{s}', x0 + 0.02, x1 - 0.02, f['level'], f['railing_top'], -0.03)
@@ -538,6 +548,17 @@ for i, a in enumerate(G['arches']):
         for s in (-1, 1):
             h = [(a['x'] + s * 0.09 + 0.07 * math.cos(t), P.GLASS_Y - 0.1, 1.05 + 0.12 * math.sin(t)) for t in [2 * math.pi * j / 24 for j in range(24)]]
             lib.tube_path(f'Maniglione{s}', h, 0.014, MAT['brass'], INF, closed=True)
+
+RETRO = lib.collection('RetroInfissi')
+_gy = P.GLASS_Y
+P.GLASS_Y = P.DEPTH - 0.28
+for f in P.FLOORS[1:]:
+    for bx, bw in BACK_WINDOWS:
+        window_frame(f'RetroFinestra{f["n"]}_{bx:.1f}', bx - bw / 2, bx + bw / 2, f['level'] + 0.9, f['win_top'],
+                     transom=f['win_top'] - 0.4, mullions=1, coll=RETRO)
+        box(f'RetroDavanzale{f["n"]}_{bx:.1f}', bx - bw / 2 - 0.06, bx + bw / 2 + 0.06, P.DEPTH - 0.02, P.DEPTH + 0.06,
+            f['level'] + 0.84, f['level'] + 0.9, MAT['stone'], RETRO)
+P.GLASS_Y = _gy
 
 # ===========================================================================
 # Campata centrale
@@ -587,7 +608,7 @@ for s in (-1, 1):
 window_frame('PortafinestraP3', -w3['w'] / 2, w3['w'] / 2, w3['bottom'], w3['top'], transom=w3['transom'], mullions=3)
 frame_rect('CorniceP3C', -w3['w'] / 2, w3['w'] / 2, w3['bottom'], w3['top'], chambranle_profile(0.10, 0.07), MAT['stone'], PAL)
 box('ArchitraveP3C', -w3['w'] / 2 - 0.25, w3['w'] / 2 + 0.25, -0.16, 0.0, w3['top'] + 0.12, w3['top'] + 0.42, MAT['stone'], PAL, bev=0.01)
-curtains('TendeP3C', -w3['w'] / 2, w3['w'] / 2, w3['bottom'], w3['transom'])
+# piano 3: tende e interni dell'appartamento in build_appartamento.py
 
 # piano 2: finestra sopra la lunetta
 window_frame('FinestraP2C', -w2['w'] / 2, w2['w'] / 2, w2['bottom'], w2['top'], transom=w2['transom'], mullions=3)
@@ -704,7 +725,8 @@ def room(name, x0, x1, y0, y1, z0, z1, floor_mat):
 
 levels = [f['level'] for f in P.FLOORS] + [U['cornice_top'] - 0.4]
 for i, f in enumerate(P.FLOORS):
-    room(f'Interno{f["n"]}', -HW + 0.55, HW - 0.55, P.WALL_T, P.WALL_T + 5.5, f['level'] - 0.02, levels[i + 1] - 0.35, MAT['int_floor'])
+    if f['n'] != P.APARTMENT_FLOOR:
+        room(f'Interno{f["n"]}', -HW + 0.55, HW - 0.55, P.WALL_T, P.WALL_T + 5.5, f['level'] - 0.02, levels[i + 1] - 0.35, MAT['int_floor'])
 room('InternoMansarda', -HW + 1.0, HW - 1.0, 0.5, 4.0, mb0 - 0.1, mb1, MAT['int_floor'])
 lobby = room('Atrio', -HW + 0.55, HW - 0.55, P.WALL_T, 9.0, 0.0, G['capital_top'] - 0.2, MAT['lobby_floor'])
 
@@ -735,7 +757,7 @@ import_gltf('Chandelier_03', 'LampadarioAtrio', INT, (0, 3.2, G['capital_top'] -
 for s in (-1, 1):
     import_gltf('potted_plant_01', f'PiantaAtrio{s}', INT, (s * 3.66, 2.2, 0), 1.5, rot_z=s)
     import_gltf('potted_plant_02', f'PiantaAtrioB{s}', INT, (s * 1.6, 6.5, 0), 1.2)
-for nlev, z in ((3, P.FLOORS[2]['level']), (2, P.FLOORS[1]['level'])):
+for nlev, z in ((2, P.FLOORS[1]['level']),):
     import_gltf('Chandelier_03', f'LampadarioP{nlev}', INT, (0, 2.6, levels[nlev] - 0.35 - 1.05), 1.0)
 import_gltf('Chandelier_01', 'LampadarioP4', INT, (0, 2.4, levels[4] - 0.35 - 0.85), 0.9)
 
@@ -914,13 +936,15 @@ for i, l in enumerate(P.light_rig()):
     else:
         add_light(f'Lanterna{i}', 'POINT', l['pos'], 45, kelvin(2400), size=0.06)
 for i, f in enumerate(P.FLOORS):
+    if f['n'] == P.APARTMENT_FLOOR:
+        continue
     add_light(f'LuceInterno{f["n"]}', 'AREA', (0, P.WALL_T + 2.5, levels[i + 1] - 0.45), 160, kelvin(2900), size=(10.0, 4.0), direction=(0, 0, -1))
 add_light('LuceAtrio', 'AREA', (0, 4.0, G['capital_top'] - 0.3), 420, kelvin(2800), size=(10.0, 7.0), direction=(0, 0, -1))
 add_light('LuceLampadarioAtrio', 'POINT', (0, 3.2, G['capital_top'] - 0.2 - 2.0), 120, kelvin(2600), size=0.3)
 add_light('LuceMansarda', 'AREA', (0, 2.0, mb1 - 0.2), 90, kelvin(2900), size=(9.0, 2.5), direction=(0, 0, -1))
 
 # Sole basso dell'ora d'oro, coerente con il cielo HDRI (sole a ~5° sull'orizzonte)
-SUN_DIR = Vector((-0.88, -0.38, 0.22)).normalized()  # sole radente da sinistra: dà rilievo a colonne e modanature
+SUN_DIR = Vector((-0.74, -0.64, 0.2)).normalized()  # sole basso da sud-ovest: rilievo in facciata e lame di luce negli interni
 sun = add_light('Sole', 'SUN', (0, 0, 30), args.sun, kelvin(2800), direction=-SUN_DIR)
 sun.data.angle = math.radians(1.2)
 
@@ -1162,6 +1186,10 @@ if not args.no_export:
             bpy.data.objects.remove(o, do_unlink=True)
     # retro e lato coperto dal vicino: fuori dalla lightmap (non visibili dalla strada)
     retro = lib.collection('Retro')
+    for o in list(bpy.data.collections['RetroInfissi'].objects):
+        for c in o.users_collection:
+            c.objects.unlink(o)
+        retro.objects.link(o)
     for nm in ('MuroRetro', 'MuroLatoDx'):
         o = bpy.data.objects[nm]
         for c in o.users_collection:
@@ -1172,6 +1200,7 @@ if not args.no_export:
         merge_collection(COLL[name])
     merge_collection(COLL['Contesto'], keep_prefixes=('Albero',))
     merge_collection(COLL['Interni'], keep_prefixes=('Interno3',))
+    merge_collection(lib.collection('Retro'))
     for o in list(bpy.data.objects):
         if o.type == 'EMPTY' and not o.children:
             bpy.data.objects.remove(o, do_unlink=True)

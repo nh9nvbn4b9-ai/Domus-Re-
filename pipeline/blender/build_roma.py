@@ -526,7 +526,7 @@ lib.box('Campagna', -40000, 40000, -40000, 40000, -60.0, -9.0, M['colli'], FAR, 
 
 # ---------------------------------------------------------------------------- luce (stessa del palazzo)
 LCOL = lib.collection('Luci')
-SUN_DIR = Vector((-0.88, -0.38, 0.22)).normalized()
+SUN_DIR = Vector((-0.74, -0.64, 0.2)).normalized()
 ld = bpy.data.lights.new('Sole', 'SUN')
 ld.energy = 2.4
 ld.color = kelvin(2800)

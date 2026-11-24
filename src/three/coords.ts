@@ -6,8 +6,8 @@ export const PALAZZO = palazzo;
 /** Blender (Z in alto, facciata verso -Y) → Three.js (Y in alto, facciata verso +Z). */
 export const fromBlender = ([x, y, z]: number[]) => new Vector3(x, z, -y);
 
-/** Direzione verso il sole (stessa del render Cycles): radente da sinistra, ora d'oro. */
-export const SUN_DIR = fromBlender([-0.88, -0.38, 0.22]).normalize();
+/** Direzione verso il sole (stessa dei bake Cycles): bassa da sud-ovest, ora d'oro. */
+export const SUN_DIR = fromBlender([-0.74, -0.64, 0.2]).normalize();
 
 /** Rotazione del cielo HDRI perché il sole dell'immagine coincida con SUN_DIR. */
 export const HDRI_SUN_U = 0.612;

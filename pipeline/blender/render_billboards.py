@@ -56,7 +56,7 @@ for asset, rot in TREES.items():
         sun = bpy.data.objects.new('sun', bpy.data.lights.new('sun', 'SUN'))
         sun.data.energy = 2.2
         sun.data.color = (1.0, 0.72, 0.48)
-        sun.rotation_euler = Vector((0.88, 0.38, -0.22)).to_track_quat('-Z', 'Y').to_euler()
+        sun.rotation_euler = Vector((0.74, 0.64, -0.2)).to_track_quat('-Z', 'Y').to_euler()
         sc.collection.objects.link(sun)
         sc.render.filepath = os.path.join(OUT, f'{asset}_{view}.png')
         bpy.ops.render.render(write_still=True)
