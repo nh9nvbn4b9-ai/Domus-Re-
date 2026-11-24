@@ -955,8 +955,8 @@ def add_camera(name, loc, center_z, fov_v_deg, res):
     cd.lens = 12.0 / math.tan(math.radians(fov_v_deg) / 2)
     dist = -loc[1]
     frame_h = 2 * dist * math.tan(math.radians(fov_v_deg) / 2)
-    aspect = res[0] / res[1]
-    cd.shift_y = (center_z - loc[2]) / (frame_h * max(1.0, aspect))
+    # con sensor_fit VERTICAL lo spostamento è espresso in frazioni dell'altezza del fotogramma
+    cd.shift_y = (center_z - loc[2]) / frame_h
     cd.clip_end = 3000
     o = bpy.data.objects.new(name, cd)
     o.location = loc
