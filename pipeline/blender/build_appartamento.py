@@ -548,7 +548,7 @@ _, cx0, cx1, cy0, cy1 = P.APT_CORE
 box('ScalaPavimento', cx0, cx1, cy0, cy1, FZ - 0.06, FZ, M['scala'], LOW, uv_scale=1.0)
 for k in range(9):
     box(f'Gradino{k}', cx0 + 0.15, cx0 + 1.35, cy0 + 1.0 + k * 0.3, cy0 + 1.3 + k * 0.3, FZ, FZ + 0.17 * (k + 1), M['scala'], LOW)
-box('Ascensore', cx1 - 1.55, cx1 - 0.1, cy1 - 1.7, cy1 - 0.1, FZ, CUT, M['acciaio'], LOW)
+box('Ascensore', cx1 - 1.55, cx1 - 0.1, cy1 - 1.7, cy1 - 0.1, FZ, CUT, M['scala'], LOW)
 
 # ============================================================================ muri spessi per la planimetria (solo sezione)
 HW = P.HALF_W

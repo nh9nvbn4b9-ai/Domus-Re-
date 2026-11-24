@@ -8,7 +8,10 @@ import { MeshoptEncoder, MeshoptDecoder } from 'meshoptimizer';
 import sharp from 'sharp';
 import { statSync } from 'node:fs';
 
-const [input, output] = process.argv.slice(2);
+const [input, output, ...flags] = process.argv.slice(2);
+// --solo-colore: modelli con luce precalcolata (lightmap): nel sito usano solo il colore della texture,
+// quindi rilievo, rugosità e occlusione si possono togliere (file molto più leggero)
+const SOLO_COLORE = flags.includes('--solo-colore');
 await MeshoptEncoder.ready;
 await MeshoptDecoder.ready;
 const io = new NodeIO()
@@ -21,6 +24,16 @@ const root = doc.getRoot();
 // Rimuove riferimenti a texture senza immagine (esportazioni fallite).
 for (const tex of root.listTextures()) {
   if (!tex.getImage() || tex.getImage().byteLength === 0) tex.dispose();
+}
+
+if (SOLO_COLORE) {
+  for (const m of root.listMaterials()) {
+    const keep = /Vetro|Glass/i.test(m.getName()) || m.getEmissiveTexture();
+    if (keep) continue;
+    m.setNormalTexture(null);
+    m.setMetallicRoughnessTexture(null);
+    m.setOcclusionTexture(null);
+  }
 }
 
 await doc.transform(

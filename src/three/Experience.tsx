@@ -57,8 +57,10 @@ export default function Experience() {
         shadows="percentage"
         dpr={mobile ? [1, 1.5] : [1, 2]}
         camera={{ fov: HERO.fov_v, near: 0.1, far: 40000, position: [HERO.pos[0], HERO.pos[1], HERO.pos[2] + 16] }}
-        onCreated={({ gl }) => {
-          gl.localClippingEnabled = true;
+        onCreated={(state) => {
+          state.gl.localClippingEnabled = true;
+          // sviluppo: ?debug espone la scena per le verifiche automatiche
+          if (new URLSearchParams(window.location.search).has('debug')) (window as unknown as { __scene: unknown }).__scene = state.scene;
         }}
         gl={{ antialias: false, toneMapping: NoToneMapping, outputColorSpace: SRGBColorSpace, powerPreference: 'high-performance', stencil: false }}
       >

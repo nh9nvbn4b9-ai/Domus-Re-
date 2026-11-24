@@ -34,8 +34,8 @@ const KEYS = [
   { t: 0.91, pos: [7, 33, 5], look: [0, 14.3, -7.8], shift: 0, fov: 45 },
   { t: 0.96, pos: [-8, 33, 3], look: [0, 14.3, -7.8], shift: 0, fov: 45 },
   // di nuovo sul balcone: vista su Colle Oppio e Colosseo
-  { t: 0.985, pos: [0.9, 15.6, 0.65], look: [-260, 10, 470], shift: 0, fov: 50 },
-  { t: 1.0, pos: [0.9, 15.65, 0.85], look: [-260, 10, 470], shift: 0, fov: 48 },
+  { t: 0.985, pos: [0.8, 15.3, 0.2], look: [-260, -15, 470], shift: 0, fov: 58 },
+  { t: 1.0, pos: [0.8, 15.32, 0.32], look: [-260, -12, 470], shift: 0, fov: 54 },
 ] as const;
 /** tratto del film in cui la camera, sopra il soffitto, mostra la planimetria */
 const PLAN_WINDOW = [0.82, 0.975];

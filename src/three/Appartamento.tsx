@@ -15,9 +15,12 @@ const MAPS = {
 };
 const PIANTA = PALAZZO.appartamento_pianta;
 
+const GROUPS = ['LM_Appartamento', 'LM_AppartamentoAlto', 'LM_PiantaMuri'];
+
+/** Gruppo di appartenenza (nome esatto del nodo: le mesh figlie si chiamano LM_..._1, _2, ...). */
 function groupOf(o: Object3D) {
   for (let p: Object3D | null = o; p; p = p.parent) {
-    if (p.name.startsWith('LM_')) return p.name;
+    if (GROUPS.includes(p.name)) return p.name;
   }
   return '';
 }
@@ -49,15 +52,17 @@ export function Appartamento() {
     lowMats.current = [];
     groups.current = { alto: [], muri: [] };
     scene.traverse((o) => {
-      if (o.name === 'LM_AppartamentoAlto') groups.current.alto.push(o);
-      if (o.name === 'LM_PiantaMuri') groups.current.muri.push(o);
       if (!(o instanceof Mesh)) return;
       const g = groupOf(o);
+      if (g === 'LM_AppartamentoAlto') groups.current.alto.push(o);
+      if (g === 'LM_PiantaMuri') groups.current.muri.push(o);
       const lm = g === 'LM_AppartamentoAlto' ? maps.alto : g === 'LM_PiantaMuri' ? maps.muri : maps.normale;
       const tune = (src: Material): Material => {
         if (!(src instanceof MeshStandardMaterial)) return src;
         if (/Vetro/.test(src.name)) return glass;
         if (!o.geometry.attributes.uv1) return src;
+        // metalli (acciaio, ottone): nessuna luce diffusa da cuocere, restano riflettenti col cielo
+        if (src.metalness > 0.5) return src;
         if (src.emissiveIntensity > 0 && src.emissive.getHex() !== 0) {
           // paralumi, braci: restano luminosi (bloom)
           const m = src.clone();
@@ -72,6 +77,7 @@ export function Appartamento() {
       };
       o.material = Array.isArray(o.material) ? o.material.map(tune) : tune(o.material);
     });
+    shown.current = null; // riapplica lo stato (planimetria o no) ai gruppi appena registrati
   }, [scene, maps, glass]);
 
   // planimetria: soffitti e muri alti nascosti, muri spessi in sezione, luce "pianta"
@@ -88,7 +94,7 @@ export function Appartamento() {
 
   const labels = useMemo(
     () =>
-      PIANTA.stanze.map((s) => ({
+      PIANTA.stanze.filter((s) => !s.nome.startsWith('Disimpegno')).map((s) => ({
         nome: s.nome,
         mq: s.mq,
         pos: fromBlender([(s.x0 + s.x1) / 2, (s.y0 + s.y1) / 2, PIANTA.quota + 0.05]),
